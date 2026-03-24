@@ -12,7 +12,7 @@ rule all:
         # RNA-seq alignments
         expand("results/alignments/rna/{sample}.bam", sample=SAMPLES),
         # Bismark alignments
-        expand("results/alignments/bs/{sample}_bismark.bam", sample=SAMPLES),
+        expand("results/alignments/bs/{sample}_bismark.deduplicated.bam", sample=SAMPLES),
         # Methylation extraction
         expand("results/alignments/bs/{sample}_bismark.bismark.cov.gz", sample=SAMPLES),
         # featureCounts
@@ -111,9 +111,27 @@ rule bismark_align:
         "{input.reads} 2> {log} && "
         "mv results/alignments/bs/{wildcards.sample}_trimmed_bismark_bt2.bam {output.bam}"
 
+rule bismark_deduplicate:
+    input:
+        bam="results/alignments/bs/{sample}_bismark.bam"
+    output:
+        bam="results/alignments/bs/{sample}_bismark.deduplicated.bam"
+    log:
+        "logs/bismark_dedup/{sample}.log"
+    resources:
+        mem_mb=16000,
+        runtime=120
+    threads: 4
+    shell:
+        "deduplicate_bismark "
+        "--paired "
+        "--bam "
+        "--output_dir results/alignments/bs/ "
+        "{input.bam} 2> {log}"
+
 rule bismark_extract:
     input:
-        bam="results/alignments/bs/{sample}_bismark.bam",
+        bam="results/alignments/bs/{sample}_bismark.deduplicated.bam",
         index=config["bismark_index"]
     output:
         cov="results/alignments/bs/{sample}_bismark.bismark.cov.gz"
