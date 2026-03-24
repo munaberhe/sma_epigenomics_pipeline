@@ -8,3 +8,4 @@ data/processed/
 results/
 logs/
 .snakemake/
+.Rproj.user
