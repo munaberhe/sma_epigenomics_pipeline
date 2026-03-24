@@ -1,3 +1,10 @@
+data/reference/hg38.fa
+data/reference/hg38.ensGene.gtf
+data/reference/Homo_sapiens.GRCh38.109.gtf
+data/reference/star_index/
+data/reference/Bisulfite_Genome/
 data/raw/
 data/processed/
-results/alignments/
+results/
+logs/
+.snakemake/

@@ -1,0 +1,28 @@
+# Sample configuration
+samples:
+  - sample1
+  - sample2
+
+# Paths
+raw_dir: "data/raw"
+ref_dir: "data/reference"
+results_dir: "results"
+
+# Reference genome
+genome: "data/reference/hg38.fa"
+gtf: "data/reference/hg38.gtf"
+star_index: "data/reference/star_index"
+bismark_index: "data/reference"
+
+# Parameters
+trimming:
+  quality: 20
+  min_length: 20
+
+deseq2:
+  padj_threshold: 0.05
+  lfc_threshold: 1
+
+dmrcaller:
+  min_coverage: 10
+  context: "CpG"
