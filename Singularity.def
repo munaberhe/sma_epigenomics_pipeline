@@ -1,0 +1,40 @@
+Bootstrap: docker
+From: continuumio/miniconda3
+
+%labels
+    Author Muna Berhe
+    Version 1.0.0
+    Description SMA Epigenomics Pipeline Container
+
+%post
+    # Update and install system dependencies
+    apt-get update && apt-get install -y \
+        build-essential \
+        wget \
+        curl \
+        git \
+        && apt-get clean
+
+    # Create conda environment
+    conda create -n sma_epigenomics_pipeline python=3.11 -y
+
+    # Install bioinformatics tools
+    conda install -n sma_epigenomics_pipeline \
+        -c bioconda -c conda-forge \
+        fastqc trim-galore bismark star \
+        samtools subread multiqc bowtie2 \
+        snakemake -y
+
+    # Install SLURM executor plugin
+    /opt/conda/envs/sma_epigenomics_pipeline/bin/pip install \
+        snakemake-executor-plugin-slurm
+
+    # Clean up
+    conda clean --all -y
+
+%environment
+    export PATH=/opt/conda/envs/sma_epigenomics_pipeline/bin:$PATH
+    export CONDA_DEFAULT_ENV=sma_epigenomics_pipeline
+
+%runscript
+    exec "$@"
