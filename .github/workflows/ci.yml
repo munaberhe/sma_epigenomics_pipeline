@@ -1,0 +1,41 @@
+name: Pipeline CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  snakemake-dry-run:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install Snakemake
+      run: |
+        pip install snakemake snakemake-executor-plugin-slurm
+
+    - name: Create dummy input files
+      run: |
+        mkdir -p data/raw data/reference
+        touch data/raw/sample1.fastq.gz
+        touch data/raw/sample2.fastq.gz
+        touch data/reference/hg38.fa
+        touch data/reference/hg38.ensGene.gtf
+
+    - name: Run Snakemake dry run
+      run: |
+        snakemake --dry-run --cores 1
+
+    - name: Validate config
+      run: |
+        python -c "import yaml; yaml.safe_load(open('configs/config.yaml'))"
+        echo "Config is valid YAML"
