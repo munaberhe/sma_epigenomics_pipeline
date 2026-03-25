@@ -30,6 +30,7 @@ jobs:
         touch data/raw/sample2.fastq.gz
         touch data/reference/hg38.fa
         touch data/reference/hg38.ensGene.gtf
+        touch data/reference/hg38.gtf
 
     - name: Run Snakemake dry run
       run: |
