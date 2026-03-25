@@ -4,6 +4,25 @@ All notable changes to the SMA Epigenomics Pipeline are documented here.
 
 ---
 
+## [0.4.0] - 2026-03-25
+
+### Added
+- Singularity/Apptainer container definition (Singularity.def)
+- GitHub Actions CI workflow with automated Snakemake dry-run validation
+- Bismark deduplication rule added to Snakefile
+- R Markdown analysis report template (analysis_report.Rmd)
+- environment.yml for reproducible conda environment setup
+
+### Fixed
+- GTF path in config.yaml corrected to hg38.ensGene.gtf
+- Bismark SLURM script updated to activate conda environment
+
+### Validated
+- STAR alignment confirmed working on Apocrita (2.3G BAM output)
+- Bismark alignment confirmed working on Apocrita (69.2% CpG methylation)
+
+---
+
 ## [0.3.0] - 2026-03-24
 
 ### Added
