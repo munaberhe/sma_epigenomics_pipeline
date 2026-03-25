@@ -25,7 +25,7 @@ jobs:
 
     - name: Create dummy input files
       run: |
-        mkdir -p data/raw data/reference
+        mkdir -p data/raw data/reference/star_index data/reference/bismark_index
         touch data/raw/sample1.fastq.gz
         touch data/raw/sample2.fastq.gz
         touch data/reference/hg38.fa
