@@ -10,7 +10,7 @@ results_dir: "results"
 
 # Reference genome
 genome: "data/reference/hg38.fa"
-gtf: "data/reference/hg38.gtf"
+gtf: "data/reference/hg38.ensGene.gtf"
 star_index: "data/reference/star_index"
 bismark_index: "data/reference"
 
