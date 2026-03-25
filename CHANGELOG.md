@@ -4,6 +4,14 @@ All notable changes to the SMA Epigenomics Pipeline are documented here.
 
 ---
 
+## [0.5.0] - 2026-03-25
+
+### Added
+- Singularity/Apptainer container built successfully (sma_pipeline.sif, 1.2G)
+- Container includes full conda environment with all bioinformatics tools
+
+---
+
 ## [0.4.0] - 2026-03-25
 
 ### Added
