@@ -70,7 +70,7 @@ rule trim:
         "logs/trim/{sample}.log"
     resources:
         mem_mb=8000,
-        runtime=60
+        runtime=240
     threads: 4
     shell:
         "trim_galore --quality {config[trimming][quality]} "
@@ -113,7 +113,7 @@ rule bismark_align:
         "logs/bismark/{sample}.log"
     resources:
         mem_mb=32000,
-        runtime=360
+        runtime=720
     threads: 8
     shell:
         "bismark --genome {input.index} "
