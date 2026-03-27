@@ -1,14 +1,16 @@
 configfile: "configs/config.yaml"
 
-SAMPLES = config["samples"]
+SAMPLES = list(config["samples"].keys())
 
 rule all:
     input:
         # QC
-        expand("results/qc/{sample}_fastqc.html", sample=SAMPLES),
+        expand("results/qc/{sample}_1_fastqc.html", sample=SAMPLES),
+        expand("results/qc/{sample}_2_fastqc.html", sample=SAMPLES),
         "results/qc/multiqc_report.html",
         # Trimming
-        expand("data/processed/{sample}_trimmed.fq.gz", sample=SAMPLES),
+        expand("data/processed/{sample}_1_trimmed.fq.gz", sample=SAMPLES),
+        expand("data/processed/{sample}_2_trimmed.fq.gz", sample=SAMPLES),
         # RNA-seq alignments
         expand("results/alignments/rna/{sample}.bam", sample=SAMPLES),
         # Bismark alignments
@@ -27,10 +29,13 @@ rule all:
 
 rule fastqc:
     input:
-        "data/raw/{sample}.fastq.gz"
+        r1=lambda wc: config["samples"][wc.sample]["r1"],
+        r2=lambda wc: config["samples"][wc.sample]["r2"]
     output:
-        html="results/qc/{sample}_fastqc.html",
-        zip="results/qc/{sample}_fastqc.zip"
+        html1="results/qc/{sample}_1_fastqc.html",
+        zip1="results/qc/{sample}_1_fastqc.zip",
+        html2="results/qc/{sample}_2_fastqc.html",
+        zip2="results/qc/{sample}_2_fastqc.zip"
     log:
         "logs/fastqc/{sample}.log"
     resources:
@@ -38,11 +43,12 @@ rule fastqc:
         runtime=30
     threads: 4
     shell:
-        "fastqc {input} --outdir results/qc/ --threads {threads} 2> {log}"
+        "fastqc {input.r1} {input.r2} --outdir results/qc/ --threads {threads} 2> {log}"
 
 rule multiqc:
     input:
-        expand("results/qc/{sample}_fastqc.zip", sample=SAMPLES)
+        expand("results/qc/{sample}_1_fastqc.zip", sample=SAMPLES),
+        expand("results/qc/{sample}_2_fastqc.zip", sample=SAMPLES)
     output:
         "results/qc/multiqc_report.html"
     log:
@@ -55,9 +61,11 @@ rule multiqc:
 
 rule trim:
     input:
-        "data/raw/{sample}.fastq.gz"
+        r1=lambda wc: config["samples"][wc.sample]["r1"],
+        r2=lambda wc: config["samples"][wc.sample]["r2"]
     output:
-        "data/processed/{sample}_trimmed.fq.gz"
+        r1="data/processed/{sample}_1_trimmed.fq.gz",
+        r2="data/processed/{sample}_2_trimmed.fq.gz"
     log:
         "logs/trim/{sample}.log"
     resources:
@@ -68,11 +76,13 @@ rule trim:
         "trim_galore --quality {config[trimming][quality]} "
         "--length {config[trimming][min_length]} "
         "--cores {threads} "
-        "--gzip -o data/processed/ {input} 2> {log}"
+        "--paired --gzip "
+        "-o data/processed/ {input.r1} {input.r2} 2> {log}"
 
 rule star_align:
     input:
-        reads="data/processed/{sample}_trimmed.fq.gz",
+        r1="data/processed/{sample}_1_trimmed.fq.gz",
+        r2="data/processed/{sample}_2_trimmed.fq.gz",
         index=config["star_index"]
     output:
         bam="results/alignments/rna/{sample}.bam"
@@ -85,7 +95,7 @@ rule star_align:
     shell:
         "STAR --runThreadN {threads} "
         "--genomeDir {input.index} "
-        "--readFilesIn {input.reads} "
+        "--readFilesIn {input.r1} {input.r2} "
         "--readFilesCommand zcat "
         "--outSAMtype BAM SortedByCoordinate "
         "--outFileNamePrefix results/alignments/rna/{wildcards.sample}_ "
@@ -94,7 +104,8 @@ rule star_align:
 
 rule bismark_align:
     input:
-        reads="data/processed/{sample}_trimmed.fq.gz",
+        r1="data/processed/{sample}_1_trimmed.fq.gz",
+        r2="data/processed/{sample}_2_trimmed.fq.gz",
         index=config["bismark_index"]
     output:
         bam="results/alignments/bs/{sample}_bismark.bam"
@@ -108,8 +119,8 @@ rule bismark_align:
         "bismark --genome {input.index} "
         "--parallel {threads} "
         "-o results/alignments/bs/ "
-        "{input.reads} 2> {log} && "
-        "mv results/alignments/bs/{wildcards.sample}_trimmed_bismark_bt2.bam {output.bam}"
+        "-1 {input.r1} -2 {input.r2} 2> {log} && "
+        "mv results/alignments/bs/{wildcards.sample}_1_trimmed_bismark_bt2_pe.bam {output.bam}"
 
 rule bismark_deduplicate:
     input:
@@ -168,6 +179,7 @@ rule featurecounts:
     shell:
         "featureCounts "
         "-T {threads} "
+        "-p "
         "-a {input.gtf} "
         "-o {output.counts} "
         "{input.bams} 2> {log}"
