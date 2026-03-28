@@ -40,7 +40,7 @@ rule fastqc:
         "logs/fastqc/{sample}.log"
     resources:
         mem_mb=4000,
-        runtime=30
+        runtime=120
     threads: 4
     shell:
         "fastqc {input.r1} {input.r2} --outdir results/qc/ --threads {threads} 2> {log}"
@@ -70,7 +70,7 @@ rule trim:
         "logs/trim/{sample}.log"
     resources:
         mem_mb=8000,
-        runtime=240
+        runtime=360
     threads: 4
     shell:
         "trim_galore --quality {config[trimming][quality]} "
@@ -90,7 +90,7 @@ rule star_align:
         "logs/star/{sample}.log"
     resources:
         mem_mb=40000,
-        runtime=120
+        runtime=600
     threads: 8
     shell:
         "STAR --runThreadN {threads} "
@@ -113,14 +113,14 @@ rule bismark_align:
         "logs/bismark/{sample}.log"
     resources:
         mem_mb=32000,
-        runtime=720
+        runtime=1440
     threads: 8
     shell:
         "bismark --genome {input.index} "
         "--parallel {threads} "
         "-o results/alignments/bs/ "
         "-1 {input.r1} -2 {input.r2} 2> {log} && "
-        "mv results/alignments/bs/{wildcards.sample}_1_trimmed_bismark_bt2_pe.bam {output.bam}"
+        "mv results/alignments/bs/{wildcards.sample}_1_val_1_bismark_bt2_pe.bam {output.bam}"
 
 rule bismark_deduplicate:
     input:
@@ -131,7 +131,7 @@ rule bismark_deduplicate:
         "logs/bismark_dedup/{sample}.log"
     resources:
         mem_mb=16000,
-        runtime=120
+        runtime=360
     threads: 4
     shell:
         "deduplicate_bismark "
@@ -150,7 +150,7 @@ rule bismark_extract:
         "logs/bismark_extract/{sample}.log"
     resources:
         mem_mb=16000,
-        runtime=240
+        runtime=720
     threads: 8
     shell:
         "bismark_methylation_extractor "
@@ -174,7 +174,7 @@ rule featurecounts:
         "logs/featurecounts.log"
     resources:
         mem_mb=8000,
-        runtime=60
+        runtime=240
     threads: 8
     shell:
         "featureCounts "
