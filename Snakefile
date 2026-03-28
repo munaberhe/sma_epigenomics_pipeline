@@ -9,8 +9,8 @@ rule all:
         expand("results/qc/{sample}_2_fastqc.html", sample=SAMPLES),
         "results/qc/multiqc_report.html",
         # Trimming
-        expand("data/processed/{sample}_1_trimmed.fq.gz", sample=SAMPLES),
-        expand("data/processed/{sample}_2_trimmed.fq.gz", sample=SAMPLES),
+        expand("data/processed/{sample}_1_val_1.fq.gz", sample=SAMPLES),
+        expand("data/processed/{sample}_2_val_2.fq.gz", sample=SAMPLES),
         # RNA-seq alignments
         expand("results/alignments/rna/{sample}.bam", sample=SAMPLES),
         # Bismark alignments
@@ -64,8 +64,8 @@ rule trim:
         r1=lambda wc: config["samples"][wc.sample]["r1"],
         r2=lambda wc: config["samples"][wc.sample]["r2"]
     output:
-        r1="data/processed/{sample}_1_trimmed.fq.gz",
-        r2="data/processed/{sample}_2_trimmed.fq.gz"
+        r1="data/processed/{sample}_1_val_1.fq.gz",
+        r2="data/processed/{sample}_2_val_2.fq.gz"
     log:
         "logs/trim/{sample}.log"
     resources:
@@ -81,8 +81,8 @@ rule trim:
 
 rule star_align:
     input:
-        r1="data/processed/{sample}_1_trimmed.fq.gz",
-        r2="data/processed/{sample}_2_trimmed.fq.gz",
+        r1="data/processed/{sample}_1_val_1.fq.gz",
+        r2="data/processed/{sample}_2_val_2.fq.gz",
         index=config["star_index"]
     output:
         bam="results/alignments/rna/{sample}.bam"
@@ -104,8 +104,8 @@ rule star_align:
 
 rule bismark_align:
     input:
-        r1="data/processed/{sample}_1_trimmed.fq.gz",
-        r2="data/processed/{sample}_2_trimmed.fq.gz",
+        r1="data/processed/{sample}_1_val_1.fq.gz",
+        r2="data/processed/{sample}_2_val_2.fq.gz",
         index=config["bismark_index"]
     output:
         bam="results/alignments/bs/{sample}_bismark.bam"
