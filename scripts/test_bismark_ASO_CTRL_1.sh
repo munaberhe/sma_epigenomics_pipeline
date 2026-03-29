@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=test_bismark
 #SBATCH --output=logs/test_bismark_ASO_CTRL_1.log
-#SBATCH --time=12:00:00
+#SBATCH --time=48:00:00
 #SBATCH --mem=32G
 #SBATCH --cpus-per-task=8
 

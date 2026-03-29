@@ -4,27 +4,18 @@ SAMPLES = list(config["samples"].keys())
 
 rule all:
     input:
-        # QC
         expand("results/qc/{sample}_1_fastqc.html", sample=SAMPLES),
         expand("results/qc/{sample}_2_fastqc.html", sample=SAMPLES),
         "results/qc/multiqc_report.html",
-        # Trimming
         expand("data/processed/{sample}_1_val_1.fq.gz", sample=SAMPLES),
         expand("data/processed/{sample}_2_val_2.fq.gz", sample=SAMPLES),
-        # RNA-seq alignments
         expand("results/alignments/rna/{sample}.bam", sample=SAMPLES),
-        # Bismark alignments
         expand("results/alignments/bs/{sample}_bismark.deduplicated.bam", sample=SAMPLES),
-        # Methylation extraction
         expand("results/alignments/bs/{sample}_bismark.bismark.cov.gz", sample=SAMPLES),
-        # featureCounts
         "results/counts/counts.txt",
-        # DESeq2
         "results/differential/deseq2_results.csv",
         "results/figures/volcano_plot.png",
-        # DMRcaller
         "results/differential/dmrs.csv",
-        # Integration
         "results/differential/dmr_deg_overlap.csv"
 
 rule fastqc:
@@ -113,7 +104,7 @@ rule bismark_align:
         "logs/bismark/{sample}.log"
     resources:
         mem_mb=32000,
-        runtime=1440
+        runtime=2880
     threads: 8
     shell:
         "bismark --genome {input.index} "
@@ -131,7 +122,7 @@ rule bismark_deduplicate:
         "logs/bismark_dedup/{sample}.log"
     resources:
         mem_mb=16000,
-        runtime=360
+        runtime=480
     threads: 4
     shell:
         "deduplicate_bismark "
@@ -150,7 +141,7 @@ rule bismark_extract:
         "logs/bismark_extract/{sample}.log"
     resources:
         mem_mb=16000,
-        runtime=720
+        runtime=1440
     threads: 8
     shell:
         "bismark_methylation_extractor "
