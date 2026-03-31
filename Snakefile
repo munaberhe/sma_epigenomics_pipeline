@@ -9,14 +9,8 @@ rule all:
         "results/qc/multiqc_report.html",
         expand("data/processed/{sample}_1_val_1.fq.gz", sample=SAMPLES),
         expand("data/processed/{sample}_2_val_2.fq.gz", sample=SAMPLES),
-        expand("results/alignments/rna/{sample}.bam", sample=SAMPLES),
         expand("results/alignments/bs/{sample}_bismark.deduplicated.bam", sample=SAMPLES),
-        expand("results/alignments/bs/{sample}_bismark.bismark.cov.gz", sample=SAMPLES),
-        "results/counts/counts.txt",
-        "results/differential/deseq2_results.csv",
-        "results/figures/volcano_plot.png",
-        "results/differential/dmrs.csv",
-        "results/differential/dmr_deg_overlap.csv"
+        expand("results/alignments/bs/{sample}_bismark.bismark.cov.gz", sample=SAMPLES)
 
 rule fastqc:
     input:
@@ -70,29 +64,6 @@ rule trim:
         "--paired --gzip "
         "-o data/processed/ {input.r1} {input.r2} 2> {log}"
 
-rule star_align:
-    input:
-        r1="data/processed/{sample}_1_val_1.fq.gz",
-        r2="data/processed/{sample}_2_val_2.fq.gz",
-        index=config["star_index"]
-    output:
-        bam="results/alignments/rna/{sample}.bam"
-    log:
-        "logs/star/{sample}.log"
-    resources:
-        mem_mb=40000,
-        runtime=600
-    threads: 8
-    shell:
-        "STAR --runThreadN {threads} "
-        "--genomeDir {input.index} "
-        "--readFilesIn {input.r1} {input.r2} "
-        "--readFilesCommand zcat "
-        "--outSAMtype BAM SortedByCoordinate "
-        "--outFileNamePrefix results/alignments/rna/{wildcards.sample}_ "
-        "2> {log} && "
-        "mv results/alignments/rna/{wildcards.sample}_Aligned.sortedByCoord.out.bam {output.bam}"
-
 rule bismark_align:
     input:
         r1="data/processed/{sample}_1_val_1.fq.gz",
@@ -107,8 +78,12 @@ rule bismark_align:
         runtime=2880
     threads: 8
     shell:
-        "bismark --genome {input.index} "
-        "--parallel {threads} "
+        "bismark --bowtie2 "
+        "-N 1 "
+        "-L 20 "
+        "--score_min L,0,-0.6 "
+        "--genome {input.index} "
+        "--parallel 4 "
         "-o results/alignments/bs/ "
         "-1 {input.r1} -2 {input.r2} 2> {log} && "
         "mv results/alignments/bs/{wildcards.sample}_1_val_1_bismark_bt2_pe.bam {output.bam}"
@@ -154,82 +129,3 @@ rule bismark_extract:
         "--gzip "
         "-o results/alignments/bs/ "
         "{input.bam} 2> {log}"
-
-rule featurecounts:
-    input:
-        bams=expand("results/alignments/rna/{sample}.bam", sample=SAMPLES),
-        gtf=config["gtf"]
-    output:
-        counts="results/counts/counts.txt"
-    log:
-        "logs/featurecounts.log"
-    resources:
-        mem_mb=8000,
-        runtime=240
-    threads: 8
-    shell:
-        "featureCounts "
-        "-T {threads} "
-        "-p "
-        "-a {input.gtf} "
-        "-o {output.counts} "
-        "{input.bams} 2> {log}"
-
-rule deseq2:
-    input:
-        counts="results/counts/counts.txt"
-    output:
-        results="results/differential/deseq2_results.csv",
-        volcano="results/figures/volcano_plot.png"
-    log:
-        "logs/deseq2.log"
-    resources:
-        mem_mb=16000,
-        runtime=60
-    threads: 4
-    shell:
-        "Rscript scripts/deseq2.R "
-        "--counts {input.counts} "
-        "--padj {config[deseq2][padj_threshold]} "
-        "--lfc {config[deseq2][lfc_threshold]} "
-        "--out_results {output.results} "
-        "--out_volcano {output.volcano} "
-        "2> {log}"
-
-rule dmrcaller:
-    input:
-        coverage=expand("results/alignments/bs/{sample}_bismark.bismark.cov.gz", sample=SAMPLES)
-    output:
-        dmrs="results/differential/dmrs.csv"
-    log:
-        "logs/dmrcaller.log"
-    resources:
-        mem_mb=16000,
-        runtime=120
-    threads: 4
-    shell:
-        "Rscript scripts/dmrcaller.R "
-        "--coverage {input.coverage} "
-        "--context {config[dmrcaller][context]} "
-        "--min_coverage {config[dmrcaller][min_coverage]} "
-        "--out {output.dmrs} "
-        "2> {log}"
-
-rule integrate:
-    input:
-        dmrs="results/differential/dmrs.csv",
-        degs="results/differential/deseq2_results.csv"
-    output:
-        overlap="results/differential/dmr_deg_overlap.csv"
-    log:
-        "logs/integrate.log"
-    resources:
-        mem_mb=8000,
-        runtime=30
-    threads: 2
-    shell:
-        "Rscript scripts/integrate.R "
-        "--dmrs {input.dmrs} "
-        "--degs {input.degs} "
-        "--out {output.overlap} "
-        "2> {log}"
