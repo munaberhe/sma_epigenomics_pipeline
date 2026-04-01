@@ -88,8 +88,9 @@ rule bismark_align:
         "--parallel 4 "
         "--temp_dir results/alignments/bs/ "
         "-o results/alignments/bs/ "
+        "--basename {wildcards.sample}_bismark "
         "-1 {input.r1} -2 {input.r2} 2> {log} && "
-        "mv results/alignments/bs/{wildcards.sample}_1_val_1_bismark_bt2_pe.bam {output.bam}"
+        "mv results/alignments/bs/{wildcards.sample}_bismark_bt2_pe.bam {output.bam}"
 
 rule bismark_deduplicate:
     input:
@@ -100,7 +101,7 @@ rule bismark_deduplicate:
         "logs/bismark_dedup/{sample}.log"
     resources:
         mem_mb=16000,
-        runtime=480
+        runtime=1440
     threads: 4
     shell:
         "deduplicate_bismark "
