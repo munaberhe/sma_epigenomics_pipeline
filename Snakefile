@@ -2,6 +2,8 @@ configfile: "configs/config.yaml"
 
 SAMPLES = list(config["samples"].keys())
 
+BASE = "/gpfs/scratch/bt25018/sma_epigenomics_pipeline"
+
 rule all:
     input:
         expand("results/qc/{sample}_1_fastqc.html", sample=SAMPLES),
@@ -9,8 +11,7 @@ rule all:
         "results/qc/multiqc_report.html",
         expand("data/processed/{sample}_1_val_1.fq.gz", sample=SAMPLES),
         expand("data/processed/{sample}_2_val_2.fq.gz", sample=SAMPLES),
-        expand("results/alignments/bs/{sample}_bismark.deduplicated.bam", sample=SAMPLES),
-        expand("results/alignments/bs/{sample}_bismark.bismark.cov.gz", sample=SAMPLES)
+        expand("results/alignments/bs/{sample}_bismark.bam", sample=SAMPLES)
 
 rule fastqc:
     input:
@@ -25,10 +26,13 @@ rule fastqc:
         "logs/fastqc/{sample}.log"
     resources:
         mem_mb=4000,
-        runtime=120
+        runtime=360
     threads: 4
     shell:
-        "fastqc {input.r1} {input.r2} --outdir results/qc/ --threads {threads} 2> {log}"
+        "fastqc {BASE}/{input.r1} {BASE}/{input.r2} "
+        "--outdir {BASE}/results/qc/ "
+        "--threads {threads} "
+        "2> {BASE}/{log}"
 
 rule multiqc:
     input:
@@ -40,9 +44,9 @@ rule multiqc:
         "logs/multiqc.log"
     resources:
         mem_mb=4000,
-        runtime=20
+        runtime=360
     shell:
-        "multiqc results/qc/ -o results/qc/ 2> {log}"
+        "multiqc {BASE}/results/qc/ -o {BASE}/results/qc/ 2> {BASE}/{log}"
 
 rule trim:
     input:
@@ -58,13 +62,13 @@ rule trim:
         runtime=720
     threads: 4
     shell:
-        "cd data/processed && "
+        "cd {BASE}/data/processed && "
         "trim_galore --quality {config[trimming][quality]} "
         "--length {config[trimming][min_length]} "
         "--cores {threads} "
         "--paired --gzip "
-        "../../{input.r1} ../../{input.r2} "
-        "2> ../../{log}"
+        "{BASE}/{input.r1} {BASE}/{input.r2} "
+        "2> {BASE}/{log}"
 
 rule bismark_align:
     input:
@@ -77,22 +81,23 @@ rule bismark_align:
         "logs/bismark/{sample}.log"
     resources:
         mem_mb=32000,
-        runtime=2880
+        runtime=4320
     threads: 8
     shell:
-        "cd /gpfs/scratch/bt25018/sma_epigenomics_pipeline/results/alignments/bs/ && "
+        "cd {BASE}/results/alignments/bs/ && "
         "bismark --bowtie2 "
         "-N 1 "
         "-L 20 "
         "--score_min L,0,-0.6 "
-        "--genome /gpfs/scratch/bt25018/sma_epigenomics_pipeline/{input.index} "
+        "--genome {BASE}/{input.index} "
         "--parallel 4 "
-        "--temp_dir /gpfs/scratch/bt25018/sma_epigenomics_pipeline/results/alignments/bs/ "
-        "-o /gpfs/scratch/bt25018/sma_epigenomics_pipeline/results/alignments/bs/ "
-        "-1 /gpfs/scratch/bt25018/sma_epigenomics_pipeline/{input.r1} "
-        "-2 /gpfs/scratch/bt25018/sma_epigenomics_pipeline/{input.r2} "
-        "2> /gpfs/scratch/bt25018/sma_epigenomics_pipeline/{log} && "
-        "mv {wildcards.sample}_1_val_1_bismark_bt2_pe.bam /gpfs/scratch/bt25018/sma_epigenomics_pipeline/{output.bam}"
+        "--temp_dir {BASE}/results/alignments/bs/ "
+        "-o {BASE}/results/alignments/bs/ "
+        "-1 {BASE}/{input.r1} "
+        "-2 {BASE}/{input.r2} "
+        "2> {BASE}/{log} && "
+        "mv {wildcards.sample}_1_val_1_bismark_bt2_pe.bam "
+        "{BASE}/{output.bam}"
 
 rule bismark_deduplicate:
     input:
@@ -109,8 +114,9 @@ rule bismark_deduplicate:
         "deduplicate_bismark "
         "--paired "
         "--bam "
-        "--output_dir results/alignments/bs/ "
-        "{input.bam} 2> {log}"
+        "--output_dir {BASE}/results/alignments/bs/ "
+        "{BASE}/{input.bam} "
+        "2> {BASE}/{log}"
 
 rule bismark_extract:
     input:
@@ -122,7 +128,7 @@ rule bismark_extract:
         "logs/bismark_extract/{sample}.log"
     resources:
         mem_mb=16000,
-        runtime=1440
+        runtime=2880
     threads: 8
     shell:
         "bismark_methylation_extractor "
@@ -130,8 +136,9 @@ rule bismark_extract:
         "--comprehensive "
         "--CX "
         "--cytosine_report "
-        "--genome_folder {input.index} "
+        "--genome_folder {BASE}/{input.index} "
         "--parallel 4 "
         "--gzip "
-        "-o results/alignments/bs/ "
-        "{input.bam} 2> {log}"
+        "-o {BASE}/results/alignments/bs/ "
+        "{BASE}/{input.bam} "
+        "2> {BASE}/{log}"
