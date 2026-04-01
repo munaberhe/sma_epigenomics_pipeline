@@ -31,7 +31,7 @@ Sequencing: paired-end whole genome bisulfite sequencing (WGBS), 151bp, ~350M re
 
 Raw FASTQ files go through QC (FastQC/MultiQC) and trimming (Trim Galore), then bisulfite alignment with Bismark. Aligned reads are deduplicated and methylation is extracted across all three cytosine contexts (CpG, CHG, CHH). Differential methylation regions are called with DMRcaller, annotated with ChIPseeker, and pathway enrichment is performed with clusterProfiler.
 
-Everything is managed by Snakemake and runs on SLURM.
+Everything is managed by Snakemake and runs on SLURM. All resource definitions (memory, runtime) are embedded in the Snakefile — no external flags needed.
 
 ## Current pipeline status
 
@@ -40,8 +40,8 @@ Everything is managed by Snakemake and runs on SLURM.
 | FastQC (raw reads) | Complete — all 24 files |
 | MultiQC | Complete |
 | Trim Galore | Complete — all 12 samples |
-| FastQC (trimmed reads) | Complete — all 12 samples |
-| Bismark alignment | In progress — running in batches of 4 |
+| FastQC (trimmed reads) | Complete — all 24 files |
+| Bismark alignment | In progress — running 1 sample at a time |
 | Bismark deduplication | Pending |
 | Methylation extraction | Pending |
 | DMRcaller | Pending — parameters TBD with supervisor |
@@ -100,28 +100,30 @@ Update `configs/config.yaml` with your sample paths before running.
 
 ## Running the pipeline
 
+Set this before running Snakemake on the login node to prevent thread exhaustion:
+```bash
+export OPENBLAS_NUM_THREADS=1
+```
+
 Dry run first to check everything resolves:
 ```bash
 snakemake --dry-run --cores 1
 ```
 
-Submit to SLURM (run 4 bismark jobs at a time to manage disk space):
+Submit to SLURM:
 ```bash
+snakemake --unlock
+
 nohup snakemake \
   --executor slurm \
-  --default-resources mem_mb=8000 runtime=360 \
-  --set-resources trim:runtime=720 trim:mem_mb=8000 \
-  --set-resources bismark_align:runtime=4320 bismark_align:mem_mb=32000 \
-  --set-resources bismark_deduplicate:runtime=1440 bismark_deduplicate:mem_mb=16000 \
-  --set-resources bismark_extract:runtime=2880 bismark_extract:mem_mb=16000 \
-  --jobs 4 \
+  --jobs 1 \
   --latency-wait 60 \
   --keep-going \
   --rerun-incomplete \
   > logs/snakemake_run.log 2>&1 &
 ```
 
-Note: `--jobs 4` is intentional. Running more than 4 bismark jobs simultaneously exceeds the scratch disk quota due to large intermediate temp files (~240GB per sample during alignment).
+Note: `--jobs 1` limits bismark to one sample at a time. Each sample generates ~240GB of intermediate temp files during alignment — running more than one simultaneously risks exceeding the Apocrita scratch quota. All resource definitions (memory, runtime) are embedded in the Snakefile.
 
 ## Bismark alignment parameters
 
