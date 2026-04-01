@@ -55,14 +55,16 @@ rule trim:
         "logs/trim/{sample}.log"
     resources:
         mem_mb=8000,
-        runtime=360
+        runtime=720
     threads: 4
     shell:
+        "cd data/processed && "
         "trim_galore --quality {config[trimming][quality]} "
         "--length {config[trimming][min_length]} "
         "--cores {threads} "
         "--paired --gzip "
-        "-o data/processed/ {input.r1} {input.r2} 2> {log}"
+        "../../{input.r1} ../../{input.r2} "
+        "2> ../../{log}"
 
 rule bismark_align:
     input:
@@ -84,6 +86,7 @@ rule bismark_align:
         "--score_min L,0,-0.6 "
         "--genome {input.index} "
         "--parallel 4 "
+        "--temp_dir results/alignments/bs/ "
         "-o results/alignments/bs/ "
         "-1 {input.r1} -2 {input.r2} 2> {log} && "
         "mv results/alignments/bs/{wildcards.sample}_1_val_1_bismark_bt2_pe.bam {output.bam}"
@@ -125,7 +128,7 @@ rule bismark_extract:
         "--CX "
         "--cytosine_report "
         "--genome_folder {input.index} "
-        "--parallel {threads} "
+        "--parallel 4 "
         "--gzip "
         "-o results/alignments/bs/ "
         "{input.bam} 2> {log}"
