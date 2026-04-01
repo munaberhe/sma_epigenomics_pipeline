@@ -80,17 +80,19 @@ rule bismark_align:
         runtime=2880
     threads: 8
     shell:
+        "cd /gpfs/scratch/bt25018/sma_epigenomics_pipeline/results/alignments/bs/ && "
         "bismark --bowtie2 "
         "-N 1 "
         "-L 20 "
         "--score_min L,0,-0.6 "
-        "--genome {input.index} "
+        "--genome /gpfs/scratch/bt25018/sma_epigenomics_pipeline/{input.index} "
         "--parallel 4 "
-        "--temp_dir results/alignments/bs/ "
-        "-o results/alignments/bs/ "
-        "--basename {wildcards.sample}_bismark "
-        "-1 {input.r1} -2 {input.r2} 2> {log} && "
-        "mv results/alignments/bs/{wildcards.sample}_bismark_bt2_pe.bam {output.bam}"
+        "--temp_dir /gpfs/scratch/bt25018/sma_epigenomics_pipeline/results/alignments/bs/ "
+        "-o /gpfs/scratch/bt25018/sma_epigenomics_pipeline/results/alignments/bs/ "
+        "-1 /gpfs/scratch/bt25018/sma_epigenomics_pipeline/{input.r1} "
+        "-2 /gpfs/scratch/bt25018/sma_epigenomics_pipeline/{input.r2} "
+        "2> /gpfs/scratch/bt25018/sma_epigenomics_pipeline/{log} && "
+        "mv {wildcards.sample}_1_val_1_bismark_bt2_pe.bam /gpfs/scratch/bt25018/sma_epigenomics_pipeline/{output.bam}"
 
 rule bismark_deduplicate:
     input:
