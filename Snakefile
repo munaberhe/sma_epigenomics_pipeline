@@ -88,6 +88,8 @@ rule bismark_align:
         "-N 1 "
         "-L 20 "
         "--score_min L,0,-0.6 "
+        "--reorder "
+        "--mm "
         "--genome {BASE}/{input.index} "
         "--parallel 4 "
         "--temp_dir {BASE}/results/alignments/bs/ "
