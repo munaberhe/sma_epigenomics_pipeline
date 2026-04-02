@@ -80,22 +80,22 @@ rule bismark_align:
     log:
         "logs/bismark/{sample}.log"
     resources:
-        mem_mb=32000,
+        mem_mb=64000,
         runtime=4320
-    threads: 4
+    threads: 8
     shell:
         "bismark --bowtie2 "
         "-N 1 "
         "-L 20 "
         "--score_min L,0,-0.6 "
         "--genome {BASE}/{input.index} "
-        "--parallel 4 "
+        "-p 4 "
         "--temp_dir {BASE}/results/alignments/bs/ "
         "-o {BASE}/results/alignments/bs/ "
         "-1 {BASE}/{input.r1} "
         "-2 {BASE}/{input.r2} "
         "2> {BASE}/{log} && "
-        "mv {BASE}/results/alignments/bs/{wildcards.sample}_1_val_1_bismark_bt2_pe.bam {BASE}/{output.bam}"
+        "mv {BASE}/results/alignments/bs/{wildcards.sample}_1_val_1_bismark_bt2_pe.bam "
         "{BASE}/{output.bam}"
 
 rule bismark_deduplicate:
