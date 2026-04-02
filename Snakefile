@@ -84,7 +84,6 @@ rule bismark_align:
         runtime=4320
     threads: 4
     shell:
-        "pwd > {BASE}/logs/bismark/{wildcards.sample}_workdir.txt && "
         "bismark --bowtie2 "
         "-N 1 "
         "-L 20 "
@@ -96,8 +95,7 @@ rule bismark_align:
         "-1 {BASE}/{input.r1} "
         "-2 {BASE}/{input.r2} "
         "2> {BASE}/{log} && "
-        "ls >> {BASE}/logs/bismark/{wildcards.sample}_workdir.txt && "
-        "mv {BASE}/{wildcards.sample}_1_val_1_bismark_bt2_pe.bam "
+        "mv {BASE}/results/alignments/bs/{wildcards.sample}_1_val_1_bismark_bt2_pe.bam {BASE}/{output.bam}"
         "{BASE}/{output.bam}"
 
 rule bismark_deduplicate:
