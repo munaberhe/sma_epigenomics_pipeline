@@ -80,16 +80,16 @@ rule bismark_align:
     log:
         "logs/bismark/{sample}.log"
     resources:
-        mem_mb=64000,
+        mem_mb=128000,
         runtime=4320
-    threads: 8
+    threads: 16
     shell:
         "bismark --bowtie2 "
         "-N 1 "
         "-L 20 "
         "--score_min L,0,-0.6 "
         "--genome {BASE}/{input.index} "
-        "-p 4 "
+        "--parallel 4 "
         "--temp_dir {BASE}/results/alignments/bs/ "
         "-o {BASE}/results/alignments/bs/ "
         "-1 {BASE}/{input.r1} "
