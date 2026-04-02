@@ -97,7 +97,7 @@ rule bismark_align:
         "-2 {BASE}/{input.r2} "
         "2> {BASE}/{log} && "
         "ls >> {BASE}/logs/bismark/{wildcards.sample}_workdir.txt && "
-        "mv {BASE}/results/alignments/bs/{wildcards.sample}_1_val_1_bismark_bt2_pe.bam "
+        "mv {BASE}/{wildcards.sample}_1_val_1_bismark_bt2_pe.bam "
         "{BASE}/{output.bam}"
 
 rule bismark_deduplicate:
