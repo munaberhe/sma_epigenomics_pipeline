@@ -11,7 +11,7 @@ rule all:
         "results/qc/multiqc_report.html",
         expand("data/processed/{sample}_1_val_1.fq.gz", sample=SAMPLES),
         expand("data/processed/{sample}_2_val_2.fq.gz", sample=SAMPLES),
-        expand("results/alignments/bs/{sample}_bismark.bam", sample=SAMPLES)
+        expand("results/alignments/bs/{sample}_bismark_bt2_pe.bam", sample=SAMPLES)
 
 rule fastqc:
     input:
@@ -76,7 +76,7 @@ rule bismark_align:
         r2="data/processed/{sample}_2_val_2.fq.gz",
         index=config["bismark_index"]
     output:
-        bam="results/alignments/bs/{sample}_bismark.bam"
+        bam="results/alignments/bs/{sample}_bismark_bt2_pe.bam"
     log:
         "logs/bismark/{sample}.log"
     resources:
@@ -84,7 +84,6 @@ rule bismark_align:
         runtime=4320
     threads: 8
     shell:
-        "cd {BASE}/results/alignments/bs/ && "
         "bismark --bowtie2 "
         "-N 1 "
         "-L 20 "
@@ -93,15 +92,14 @@ rule bismark_align:
         "--parallel 4 "
         "--temp_dir {BASE}/results/alignments/bs/ "
         "-o {BASE}/results/alignments/bs/ "
+        "--basename {wildcards.sample}_bismark "
         "-1 {BASE}/{input.r1} "
         "-2 {BASE}/{input.r2} "
-        "2> {BASE}/{log} && "
-        "mv {wildcards.sample}_1_val_1_bismark_bt2_pe.bam "
-        "{BASE}/{output.bam}"
+        "2> {BASE}/{log}"
 
 rule bismark_deduplicate:
     input:
-        bam="results/alignments/bs/{sample}_bismark.bam"
+        bam="results/alignments/bs/{sample}_bismark_bt2_pe.bam"
     output:
         bam="results/alignments/bs/{sample}_bismark.deduplicated.bam"
     log:
