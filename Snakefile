@@ -113,8 +113,9 @@ rule bismark_deduplicate:
     log:
         "logs/bismark_dedup/{sample}.log"
     resources:
-        mem_mb=16000,
-        runtime=1440
+        mem_mb=32000,
+        runtime=1440,
+        constraint="ehc"
     threads: 4
     shell:
         "deduplicate_bismark "
@@ -129,12 +130,13 @@ rule bismark_extract:
         bam="results/alignments/bs/{sample}_bismark.deduplicated.bam",
         index=config["bismark_index"]
     output:
-        cov="results/alignments/bs/{sample}_bismark.bismark.cov.gz"
+        cov="results/alignments/bs/{sample}_bismark.deduplicated.bismark.cov.gz"
     log:
         "logs/bismark_extract/{sample}.log"
     resources:
         mem_mb=64000,
-        runtime=2880
+        runtime=2880,
+        constraint="ehc"
     threads: 8
     shell:
         "bismark_methylation_extractor "
