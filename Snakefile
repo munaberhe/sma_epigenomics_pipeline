@@ -82,7 +82,7 @@ rule bismark_align:
     resources:
         mem_mb=128000,
         runtime=4320,
-        slurm_extra="--constraint=ehc"
+        constraint="ehc",
     threads: 32
     shell:
         "ulimit -n 4096 && "
