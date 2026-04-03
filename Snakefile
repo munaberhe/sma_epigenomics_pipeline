@@ -8,7 +8,7 @@ rule all:
     input:
         expand("results/qc/{sample}_1_fastqc.html", sample=SAMPLES),
         expand("results/qc/{sample}_2_fastqc.html", sample=SAMPLES),
-        "results/qc/multiqc_report.html",
+        #"results/qc/multiqc_report.html",
         expand("data/processed/{sample}_1_val_1.fq.gz", sample=SAMPLES),
         expand("data/processed/{sample}_2_val_2.fq.gz", sample=SAMPLES),
         expand("results/alignments/bs/{sample}_bismark.bam", sample=SAMPLES)
@@ -81,11 +81,13 @@ rule bismark_align:
         "logs/bismark/{sample}.log"
     resources:
         mem_mb=128000,
-        runtime=4320
+        runtime=4320,
+        slurm_extra="--constraint=ehc"
     threads: 32
     shell:
+        "ulimit -n 4096 && "
         "mkdir -p {BASE}/results/alignments/bs/ && "
-        "mkdir -p $TMPDIR/{wildcards.sample} && "
+        "mkdir -p {BASE}/results/alignments/bs/tmp_{wildcards.sample} && "
         "bismark --bowtie2 "
         "-N 1 "
         "-L 20 "
@@ -93,12 +95,14 @@ rule bismark_align:
         "--parallel 4 "
         "-p 2 "
         "--genome {BASE}/{input.index} "
-        "--temp_dir $TMPDIR/{wildcards.sample} "
+        "--temp_dir {BASE}/results/alignments/bs/tmp_{wildcards.sample} "
         "-o {BASE}/results/alignments/bs/ "
         "-1 {BASE}/{input.r1} "
         "-2 {BASE}/{input.r2} "
         "2> {BASE}/{log} && "
         "mv {BASE}/results/alignments/bs/{wildcards.sample}_1_val_1_bismark_bt2_pe.bam "
+        "{BASE}/{output.bam} 2>/dev/null || "
+        "mv {BASE}/{wildcards.sample}_1_val_1_bismark_bt2_pe.bam "
         "{BASE}/{output.bam}"
 
 rule bismark_deduplicate:
