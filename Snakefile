@@ -85,6 +85,7 @@ rule bismark_align:
     threads: 32
     shell:
         "mkdir -p {BASE}/results/alignments/bs/ && "
+        "mkdir -p $TMPDIR/{wildcards.sample} && "
         "bismark --bowtie2 "
         "-N 1 "
         "-L 20 "
@@ -92,7 +93,7 @@ rule bismark_align:
         "--parallel 4 "
         "-p 2 "
         "--genome {BASE}/{input.index} "
-        "--temp_dir $TMPDIR "
+        "--temp_dir $TMPDIR/{wildcards.sample} "
         "-o {BASE}/results/alignments/bs/ "
         "-1 {BASE}/{input.r1} "
         "-2 {BASE}/{input.r2} "
