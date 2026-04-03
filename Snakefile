@@ -80,19 +80,18 @@ rule bismark_align:
     log:
         "logs/bismark/{sample}.log"
     resources:
-        mem_mb=128000,
+        mem_mb=48000,
         runtime=4320
-    threads: 16
+    threads: 12
     shell:
+        "mkdir -p {BASE}/results/alignments/bs/ && "
         "bismark --bowtie2 "
         "-N 1 "
         "-L 20 "
         "--score_min L,0,-0.6 "
-        "--reorder "
-        "--mm "
+        "-p 4 "
         "--genome {BASE}/{input.index} "
-        "--parallel 4 "
-        "--temp_dir {BASE}/results/alignments/bs/ "
+        "--temp_dir $TMPDIR "
         "-o {BASE}/results/alignments/bs/ "
         "-1 {BASE}/{input.r1} "
         "-2 {BASE}/{input.r2} "
@@ -128,7 +127,7 @@ rule bismark_extract:
     log:
         "logs/bismark_extract/{sample}.log"
     resources:
-        mem_mb=16000,
+        mem_mb=64000,
         runtime=2880
     threads: 8
     shell:
@@ -138,7 +137,6 @@ rule bismark_extract:
         "--CX "
         "--cytosine_report "
         "--genome_folder {BASE}/{input.index} "
-        "--parallel 4 "
         "--gzip "
         "-o {BASE}/results/alignments/bs/ "
         "{BASE}/{input.bam} "
