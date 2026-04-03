@@ -80,10 +80,10 @@ rule bismark_align:
     log:
         "logs/bismark/{sample}.log"
     resources:
-        mem_mb=128000,
+        mem_mb=256000,
         runtime=4320,
         constraint="ehc",
-    threads: 32
+    threads: 64
     shell:
         "ulimit -n 4096 && "
         "mkdir -p {BASE}/results/alignments/bs/ && "
@@ -92,7 +92,7 @@ rule bismark_align:
         "-N 1 "
         "-L 20 "
         "--score_min L,0,-0.6 "
-        "--parallel 4 "
+        "--parallel 8 "
         "-p 2 "
         "--genome {BASE}/{input.index} "
         "--temp_dir {BASE}/results/alignments/bs/tmp_{wildcards.sample} "
