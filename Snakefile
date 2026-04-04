@@ -11,7 +11,9 @@ rule all:
         #"results/qc/multiqc_report.html",
         expand("data/processed/{sample}_1_val_1.fq.gz", sample=SAMPLES),
         expand("data/processed/{sample}_2_val_2.fq.gz", sample=SAMPLES),
-        expand("results/alignments/bs/{sample}_bismark.bam", sample=SAMPLES)
+        expand("results/alignments/bs/{sample}_bismark.bam", sample=SAMPLES),
+        expand("results/alignments/bs/{sample}_bismark.deduplicated.bam", sample=SAMPLES),
+        expand("results/alignments/bs/{sample}_bismark.deduplicated.bismark.cov.gz", sample=SAMPLES)
 
 rule fastqc:
     input:
