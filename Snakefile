@@ -136,10 +136,10 @@ rule bismark_extract:
     log:
         "logs/bismark_extract/{sample}.log"
     resources:
-        mem_mb=64000,
+        mem_mb=128000,
         runtime=2880,
         constraint="ehc"
-    threads: 8
+    threads: 16
     shell:
         "bismark_methylation_extractor "
         "--paired-end "
