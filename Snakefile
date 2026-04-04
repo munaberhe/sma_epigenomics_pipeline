@@ -115,7 +115,7 @@ rule bismark_deduplicate:
     log:
         "logs/bismark_dedup/{sample}.log"
     resources:
-        mem_mb=32000,
+        mem_mb=64000,
         runtime=1440,
         constraint="ehc"
     threads: 4
