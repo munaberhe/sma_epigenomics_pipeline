@@ -146,8 +146,24 @@ rule bismark_extract:
         "--comprehensive "
         "--CX "
         "--cytosine_report "
+        "--parallel 4 "
         "--genome_folder {BASE}/{input.index} "
         "--gzip "
         "-o {BASE}/results/alignments/bs/ "
         "{BASE}/{input.bam} "
         "2> {BASE}/{log}"
+
+rule coverage_correlation:
+    input:
+        expand("results/alignments/bs/{sample}_bismark.deduplicated.bismark.cov.gz", sample=SAMPLES)
+    output:
+        "results/qc/methylation/coverage_summary.csv",
+        "results/qc/methylation/methylation_correlation.csv"
+    log:
+        "logs/coverage_correlation.log"
+    resources:
+        mem_mb=64000,
+        runtime=120
+    threads: 4
+    shell:
+        "Rscript {BASE}/scripts/coverage_correlation.R > {BASE}/{log} 2>&1"
