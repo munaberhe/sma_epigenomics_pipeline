@@ -13,7 +13,9 @@ rule all:
         expand("data/processed/{sample}_2_val_2.fq.gz", sample=SAMPLES),
         expand("results/alignments/bs/{sample}_bismark.bam", sample=SAMPLES),
         expand("results/alignments/bs/{sample}_bismark.deduplicated.bam", sample=SAMPLES),
-        expand("results/alignments/bs/{sample}_bismark.deduplicated.bismark.cov.gz", sample=SAMPLES)
+        expand("results/alignments/bs/{sample}_bismark.deduplicated.bismark.cov.gz", sample=SAMPLES),
+        "results/qc/methylation/coverage_summary.csv",
+        "results/qc/methylation/methylation_correlation.csv"
 
 rule fastqc:
     input:
