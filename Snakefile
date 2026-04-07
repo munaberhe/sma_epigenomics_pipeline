@@ -15,7 +15,8 @@ rule all:
         expand("results/alignments/bs/{sample}_bismark.deduplicated.bam", sample=SAMPLES),
         expand("results/alignments/bs/{sample}_bismark.deduplicated.bismark.cov.gz", sample=SAMPLES),
         "results/qc/methylation/coverage_summary.csv",
-        "results/qc/methylation/methylation_correlation.csv"
+        "results/qc/methylation/methylation_correlation.csv",
+        "results/pipeline_complete.txt"
 
 rule fastqc:
     input:
@@ -169,3 +170,12 @@ rule coverage_correlation:
     threads: 4
     shell:
         "Rscript {BASE}/scripts/coverage_correlation.R > {BASE}/{log} 2>&1"
+
+rule pipeline_complete:
+    input:
+        "results/qc/methylation/coverage_summary.csv",
+        "results/qc/methylation/methylation_correlation.csv"
+    output:
+        "results/pipeline_complete.txt"
+    shell:
+        "echo 'SMA epigenomics pipeline complete: ' $(date) > {output}"
