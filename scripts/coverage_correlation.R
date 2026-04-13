@@ -1,3 +1,4 @@
+.libPaths("~/R/library")
 # coverage_correlation.R
 # WGBS QC Analysis: Coverage and Methylation Correlation
 # SMA Epigenomics Pipeline — Muna Berhe, QMUL
