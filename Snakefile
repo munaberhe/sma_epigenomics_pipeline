@@ -169,7 +169,22 @@ rule coverage_correlation:
         runtime=120
     threads: 4
     shell:
-        "Rscript {BASE}/scripts/coverage_correlation.R > {BASE}/{log} 2>&1"
+        "Rscript scripts/coverage_correlation.R > {log} 2>&1"
+
+rule dmrcaller:
+    input:
+        expand("results/alignments/bs/{sample}_bismark.deduplicated.bismark.cov.gz", sample=SAMPLES),
+        "results/qc/methylation/coverage_summary.csv"
+    output:
+        "results/dmr/ASO_VPA_vs_Scramble_CTRL/ASO_VPA_vs_Scramble_CTRL_all_chr.rds"
+    log:
+        "logs/dmrcaller.log"
+    resources:
+        mem_mb=128000,
+        runtime=480
+    threads: 4
+    shell:
+        "Rscript scripts/dmrcaller.R > {log} 2>&1"
 
 rule pipeline_complete:
     input:
