@@ -11,7 +11,7 @@ library(GenomicRanges)
 
 # Config
 COV_DIR     <- "results/alignments/bs/by_chr"
-OUT_DIR     <- "results/dmr"
+OUT_DIR     <- "results/dmr_0p3"
 QC_DIR      <- "results/qc/dmrcaller"
 MIN_COV     <- 4
 CONTEXT     <- "CG"
@@ -139,7 +139,7 @@ for (contrast_name in names(CONTRASTS)) {
                   test                    = "score",
                   pValueThreshold         = 0.01,
                   minCytosinesCount       = 4,
-                  minProportionDifference = 0.1,
+                  minProportionDifference = 0.3,
                   minGap                  = 0,
                   minSize                 = 50,
                   minReadsPerCytosine     = 4,
@@ -180,32 +180,6 @@ for (contrast_name in names(CONTRASTS)) {
   message("  Total DMRs: ",         length(all_dmrs_combined))
   message("  Hypermethylated: ",    sum(dmr_df$regionType == "gain", na.rm=TRUE))
   message("  Hypomethylated: ",     sum(dmr_df$regionType == "loss", na.rm=TRUE))
-
-  # Section 3.14 — computeOverlapProfile and plotOverlapProfile
-  # Runs per chromosome as required by DMRcaller (one region per call)
-  message("  Computing overlap profiles per chromosome...")
-  tryCatch({
-    dmr_seqnames <- unique(as.character(seqnames(all_dmrs_combined)))
-    overlap_list <- GRangesList()
-    for (chr in dmr_seqnames) {
-      chr_dmrs <- all_dmrs_combined[seqnames(all_dmrs_combined) == chr]
-      if (length(chr_dmrs) == 0) next
-      chr_max  <- max(end(chr_dmrs))
-      chr_region <- GRanges(seqnames = Rle(chr),
-                            ranges   = IRanges(1, chr_max))
-      op <- computeOverlapProfile(chr_dmrs, chr_region,
-                                  windowSize = 1000000, binary = FALSE)
-      overlap_list[[chr]] <- op
-    }
-    pdf(file.path(contrast_out,
-                  paste0(contrast_name, "_overlap_profile.pdf")),
-        width = 14, height = 4)
-    par(mar = c(4, 4, 3, 1) + 0.1)
-    plotOverlapProfile(overlap_list,
-      main = paste0("DMR Distribution — ", contrast_name))
-    dev.off()
-    message("  Saved: overlap_profile.pdf")
-  }, error = function(e) message("  Overlap profile error: ", e$message))
 
   # Chromosome distribution plot
   chr_counts <- sapply(all_dmrs, length)
