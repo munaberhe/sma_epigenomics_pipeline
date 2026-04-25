@@ -124,7 +124,7 @@ run_dmrs <- function(treat, ctrl, method, ws,
 }
 
 results <- list()
-window_sizes <- c(100, 200, 300, 500)
+window_sizes <- c(100, 200, 300, 500, 1000, 2000)
 methods      <- c("bins", "neighbourhood", "noise_filter")
 kernels_nf   <- c("triangular", "uniform", "epanechnikov")
 modes        <- c(FALSE, TRUE)
