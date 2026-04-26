@@ -73,7 +73,9 @@ for (contrast in contrasts) {
 
     kegg <- enrichKEGG(gene         = genes,
                        organism     = "hsa",
-                       pvalueCutoff = 0.05)
+                       pvalueCutoff = 0.1,
+                       qvalueCutoff = 0.3,
+                       minGSSize    = 5)
     if (!is.null(kegg) && nrow(kegg) > 0) {
       write.csv(as.data.frame(kegg),
                 file.path(OUT_DIR, paste0(contrast, "_KEGG.csv")), row.names = FALSE)

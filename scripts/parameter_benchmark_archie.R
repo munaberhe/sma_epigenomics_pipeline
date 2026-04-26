@@ -1,8 +1,9 @@
 .libPaths("~/R/library")
-# parameter_benchmark.R
-# DMR parameter benchmarking — label-swap null model
+# parameter_benchmark_archie.R
+# DMR parameter benchmarking — Archie scramble null model
 # All methods (bins, neighbourhood, noise_filter) tested at all window sizes
 # Two threshold regimes (loose/strict) and three kernels for noise_filter
+# Identical structure to parameter_benchmark.R — only scrambling method differs
 # SMA Epigenomics Pipeline — Muna Berhe, QMUL
 
 library(DMRcaller)
@@ -28,10 +29,20 @@ aso_ctrl <- load_group_chr1(c("ASO_CTRL_1", "ASO_CTRL_2", "ASO_CTRL_3"))
 message("  ASO_VPA CpGs:  ", length(aso_vpa))
 message("  ASO_CTRL CpGs: ", length(aso_ctrl))
 
-# Label-swap null model — swap the two conditions
-message("Creating label-swap scrambled datasets...")
-aso_vpa_scr  <- aso_ctrl
-aso_ctrl_scr <- aso_vpa
+# Archie scramble null model — shuffle readsM/readsN across positions
+# breaks spatial signal while keeping coverage distribution intact
+scramble_counts <- function(dat, seed=42) {
+  set.seed(seed)
+  dat_scr <- dat
+  idx <- sample(length(dat))
+  mcols(dat_scr)$readsM <- mcols(dat)$readsM[idx]
+  mcols(dat_scr)$readsN <- mcols(dat)$readsN[idx]
+  dat_scr
+}
+
+message("Creating Archie scrambled datasets...")
+aso_vpa_scr  <- scramble_counts(aso_vpa,  seed=42)
+aso_ctrl_scr <- scramble_counts(aso_ctrl, seed=123)
 message("  Done")
 
 chr1_region <- GRanges("chr1", IRanges(1, REGION_END))
@@ -144,7 +155,7 @@ for (method in methods) {
           window_size     = ws,
           mode            = mode_lab,
           kernel          = ker,
-          scramble_method = "label_swap",
+          scramble_method = "archie_scramble",
           n_real          = n_real,
           n_scrambled     = n_scr,
           ratio           = ratio,
@@ -157,10 +168,10 @@ for (method in methods) {
 
 summary_df <- do.call(rbind, results)
 write.csv(summary_df,
-          file.path(OUT_DIR, "parameter_benchmark_label_swap.csv"),
+          file.path(OUT_DIR, "parameter_benchmark_archie_scramble.csv"),
           row.names = FALSE)
 
-message("\n=== BENCHMARK RESULTS (Label-swap) ===")
+message("\n=== BENCHMARK RESULTS (Archie scramble) ===")
 message(sprintf("%-8s %-15s %-6s %-14s %-12s %-12s %-10s",
                 "Mode", "Method", "ws", "Kernel", "Real DMRs", "Scr DMRs", "S/N"))
 message(paste(rep("-", 80), collapse=""))
@@ -172,4 +183,4 @@ for (i in seq_len(nrow(summary_df))) {
 }
 
 message("\nDone. Results saved to: ", OUT_DIR,
-        "/parameter_benchmark_label_swap.csv")
+        "/parameter_benchmark_archie_scramble.csv")
