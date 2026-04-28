@@ -1,15 +1,91 @@
 .libPaths("~/R/library")
 # candidate_locus_plots_annotated.R
 # Locus-level methylation profiles for candidate DMR genes
-# Uses Ensembl GRCh38 GTF for gene/exon annotation on each plot
+# Monkey-patches .plotGeneticElements for staggered gene labels
 # SMA Epigenomics Pipeline — Muna Berhe, QMUL
 
 library(DMRcaller)
 library(rtracklayer)
 
+# ── Patch .plotGeneticElements to stagger overlapping gene labels ─────────────
+# Original places all labels at start(gene) at a fixed y — causes collision
+# when genes are close. This version alternates y between two levels.
+.plotGeneticElements_patched <- function(gff, region, col) {
+  seqname <- seqnames(region)
+  minPos  <- start(region)
+  maxPos  <- end(region)
+  gff     <- gff[queryHits(findOverlaps(gff, region))]
+  start(gff) <- pmax(start(gff), minPos)
+  end(gff)   <- pmin(end(gff),   maxPos)
+
+  genes    <- gff[gff$type == "gene"]
+  genesPos <- genes[strand(genes) == "+" | strand(genes) == "*"]
+  genesNeg <- genes[strand(genes) == "-" | strand(genes) == "*"]
+  exons    <- gff[gff$type == "exon"]
+  exons    <- exons[overlapsAny(exons, genes)]
+  exonsPos <- exons[strand(exons) == "+" | strand(exons) == "*"]
+  exonsNeg <- exons[strand(exons) == "-" | strand(exons) == "*"]
+  transposons    <- gff[gff$type == "transposable_element"]
+  transposonsPos <- transposons[strand(transposons) == "+" | strand(transposons) == "*"]
+  transposonsNeg <- transposons[strand(transposons) == "-" | strand(transposons) == "*"]
+
+  negativeStrandPosition <- -0.175
+  positiveStrandPosition <- -0.075
+
+  text(maxPos + (maxPos - minPos)/100, positiveStrandPosition, "+")
+  text(maxPos + (maxPos - minPos)/100, negativeStrandPosition, "-")
+  lines(c(minPos, maxPos), c(-0.14, -0.14), lty = 1, lwd = 0.75, col = "black")
+
+  # stagger_labels: alternate y position for successive genes to avoid collision
+  stagger_labels <- function(genes_gr, y_levels) {
+    if (length(genes_gr) == 0) return(invisible(NULL))
+    xs <- start(genes_gr)
+    ids <- genes_gr$ID
+    # sort by position so staggering is applied left-to-right
+    ord <- order(xs)
+    xs  <- xs[ord]
+    ids <- ids[ord]
+    for (i in seq_along(xs)) {
+      y <- y_levels[((i - 1) %% length(y_levels)) + 1]
+      text(xs[i], y, ids[i], pos = 4, cex = 0.5)
+    }
+  }
+
+  if (length(genesPos) > 0) {
+    segments(start(genesPos), positiveStrandPosition, end(genesPos), positiveStrandPosition)
+    # stagger between two y levels above the + strand line
+    stagger_labels(genesPos, c(-0.10, -0.125))
+  }
+  if (length(genesNeg) > 0) {
+    segments(start(genesNeg), -0.175, end(genesNeg), negativeStrandPosition)
+    # stagger between two y levels below the - strand line
+    stagger_labels(genesNeg, c(-0.22, -0.245))
+  }
+  if (length(exonsPos) > 0)
+    rect(start(exonsPos), -0.05, end(exonsPos), -0.09, col = col[1], border = NA)
+  if (length(exonsNeg) > 0)
+    rect(start(exonsNeg), -0.16, end(exonsNeg), -0.2,  col = col[1], border = NA)
+  if (length(transposonsPos) > 0) {
+    rect(start(transposonsPos), -0.05, end(transposonsPos), -0.09,
+         col = col[2], border = col[2], density = 30, angle = 30)
+    stagger_labels(transposonsPos, c(-0.10, -0.125))
+  }
+  if (length(transposonsNeg) > 0) {
+    rect(start(transposonsNeg), -0.16, end(transposonsNeg), -0.2,
+         col = col[2], border = col[2], density = 30, angle = 30)
+    stagger_labels(transposonsNeg, c(-0.22, -0.245))
+  }
+}
+
+# Inject patched function into DMRcaller's private namespace
+environment(.plotGeneticElements_patched) <- asNamespace("DMRcaller")
+assignInNamespace(".plotGeneticElements", .plotGeneticElements_patched, ns = "DMRcaller")
+message("Patched .plotGeneticElements with staggered label version")
+# ─────────────────────────────────────────────────────────────────────────────
+
 COV_DIR <- "results/alignments/bs/by_chr"
 OUT_DIR <- "results/dmr/candidate_locus_plots_annotated"
-GTF <- "/data/home/bt25018/sma_epigenomics_pipeline/data/reference/Homo_sapiens.GRCh38.109.chr.gtf.gz"
+GTF <- "/data/home/bt25018/sma_epigenomics_pipeline/data/reference/Homo_sapiens.GRCh38.110.gtf.gz"
 dir.create(OUT_DIR, recursive = TRUE, showWarnings = FALSE)
 
 SAMPLES <- data.frame(
@@ -22,7 +98,6 @@ SAMPLES <- data.frame(
   stringsAsFactors = FALSE
 )
 
-# load and pool replicates for a group, filter to min 4x coverage
 load_group <- function(group_name, chrom) {
   samples <- SAMPLES$name[SAMPLES$group == group_name]
   paths <- file.path(COV_DIR, paste0(samples, "_", chrom, ".CpG_report.txt.gz"))
@@ -34,11 +109,12 @@ load_group <- function(group_name, chrom) {
   }, error = function(e) NULL)
 }
 
-# load GTF once — takes a while but only need to do it once
-# originally used hg38.ensGene.gtf but gene_name was just Ensembl IDs
-# switched to Ensembl release 109 which has proper gene symbols
 message("Loading GTF annotation...")
 ge_all <- import(GTF, format = "GTF")
+seqlevels(ge_all) <- paste0("chr", seqlevels(ge_all))
+ge_all <- ge_all[ge_all$type %in% c("gene", "exon")]
+ge_all$ID <- ifelse(!is.na(ge_all$gene_name) & ge_all$gene_name != "",
+                    ge_all$gene_name, ge_all$gene_id)
 message("  Features loaded: ", length(ge_all))
 
 make_locus_plot <- function(gene, chrom, dmr_start, dmr_end,
@@ -53,15 +129,13 @@ make_locus_plot <- function(gene, chrom, dmr_start, dmr_end,
     return(NULL)
   }
 
-  # tried 10000 first but 15000 shows more exon structure for larger genes like EZH1
   region <- GRanges(seqnames = Rle(chrom),
                     ranges = IRanges(dmr_start - window, dmr_end + window))
-
-  # subset to chromosome so DMRcaller doesn't have to search the whole GTF
   ge_local <- ge_all[seqnames(ge_all) == chrom]
-  message("  Gene features on ", chrom, ": ", length(ge_local))
 
-  # load the DMR calls for this contrast if they exist
+  ge_window <- subsetByOverlaps(ge_local[ge_local$type == "gene"], region)
+  message("  Genes in window: ", paste(ge_window$ID, collapse=", "))
+
   rds_path <- file.path("results/dmr", contrast_name,
                         paste0(contrast_name, "_all_chr.rds"))
   dmr_list <- if (file.exists(rds_path)) {
@@ -73,16 +147,16 @@ make_locus_plot <- function(gene, chrom, dmr_start, dmr_end,
   outfile <- file.path(OUT_DIR, paste0(gene, "_", contrast_name, "_annotated_locus.pdf"))
 
   tryCatch({
-    pdf(outfile, width = 14, height = 7)
-    par(mar = c(4, 4, 3, 1) + 0.1)
+    cairo_pdf(outfile, width = 16, height = 9)
+    par(mar = c(6, 4, 3, 1) + 0.1)
     plotLocalMethylationProfile(
       t_dat, c_dat,
       region,
       dmr_list,
       conditionsNames = c(treatment_group, control_group),
       gff = ge_local,
-      windowSize = 500,  # Radu suggested up to 500bp based on correlation plots
-      main = paste0(gene, " — CG methylation — ", treatment_group, " vs ", control_group))
+      windowSize = 500,
+      main = paste0(gene, " ... CG methylation ... ", treatment_group, " vs ", control_group))
     dev.off()
     message("  Saved: ", outfile)
   }, error = function(e) {
@@ -106,7 +180,7 @@ make_locus_plot("CACNB2", "chr10", 18397445,  18397587,  "Scramble_VPA", "Scramb
 make_locus_plot("SATB1",  "chr3",  18428899,  18428989,  "Scramble_VPA", "Scramble_CTRL", "VPA_vs_Scramble_CTRL")
 make_locus_plot("GTF2B",  "chr1",  88886665,  88886846,  "Scramble_VPA", "Scramble_CTRL", "VPA_vs_Scramble_CTRL")
 
-# ASO + VPA combined effect — ASO_VPA vs Scramble_CTRL
+# ASO + VPA combined — ASO_VPA vs Scramble_CTRL
 make_locus_plot("FOXP1",   "chr3",  71689445,  71689619,  "ASO_VPA", "Scramble_CTRL", "ASO_VPA_vs_Scramble_CTRL")
 make_locus_plot("PRPF38B", "chr1",  108700037, 108700113, "ASO_VPA", "Scramble_CTRL", "ASO_VPA_vs_Scramble_CTRL")
 make_locus_plot("DSC2",    "chr18", 31099409,  31099652,  "ASO_VPA", "Scramble_CTRL", "ASO_VPA_vs_Scramble_CTRL")
