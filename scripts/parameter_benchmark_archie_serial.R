@@ -1,8 +1,16 @@
 .libPaths("~/R/library")
-# parameter_benchmark_archie.R — read-count permutation null model
+# parameter_benchmark_archie_serial.R — PLAN B (read-count permutation)
 # SMA Epigenomics Pipeline — Muna Berhe, QMUL
 
-source("scripts/parameter_benchmark_helpers.R")
+.this_dir <- tryCatch(
+  dirname(normalizePath(sys.frame(1)$ofile)),
+  error = function(e) {
+    args <- commandArgs(trailingOnly = FALSE)
+    f <- sub("--file=", "", args[grep("--file=", args)])
+    if (length(f) > 0) dirname(normalizePath(f)) else getwd()
+  }
+)
+source(file.path(.this_dir, "parameter_benchmark_helpers_serial.R"))
 
 NULL_NAME <- "archie_scramble"
 dir.create(OUT_DIR, recursive = TRUE, showWarnings = FALSE)

@@ -63,7 +63,7 @@ for (ws in window_sizes) {
     test="fisher", pValueThreshold=0.01,
     minCytosinesCount=4, minProportionDifference=0.2,
     minGap=0, minSize=50, minReadsPerCytosine=4,
-    cores=24, parallel=TRUE)
+    cores=32, parallel=TRUE)
   n_real <- length(dmrs_real)
   message("  ws=", ws, " real DMRs: ", n_real)
   results[[paste("real", ws)]] <- data.frame(
@@ -82,7 +82,7 @@ for (seed in SEEDS) {
         test="fisher", pValueThreshold=0.01,
         minCytosinesCount=4, minProportionDifference=0.2,
         minGap=0, minSize=50, minReadsPerCytosine=4,
-        cores=24, parallel=TRUE)
+        cores=32, parallel=TRUE)
     }, error=function(e) NULL)
     n_scr <- if (!is.null(dmrs_scr)) length(dmrs_scr) else NA
     message("  ws=", ws, " seed=", seed, " scrambled: ", n_scr)
