@@ -70,3 +70,7 @@ deseq2:
 dmrcaller:
   min_coverage: 10
   context: "CpG"
+
+# R configuration (Apocrita-specific — override locally if needed)
+rscript: "/share/apps/rocky9/containers/R/4.5.1/bin/Rscript"
+r_libs_user: "/data/home/bt25018/R/library"
