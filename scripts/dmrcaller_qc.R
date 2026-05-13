@@ -84,7 +84,7 @@ for (group in names(SAMPLES)) {
   }
   lty_i <- lty_i + 1
 }
-legend("topright", legend=names(group_colours), col=group_colours, lwd=2, cex=0.85)
+legend("bottomleft", legend=names(group_colours), col=group_colours, lwd=2, cex=0.85)
 dev.off()
 message("Saved: dmrcaller_coverage_comparison.pdf")
 

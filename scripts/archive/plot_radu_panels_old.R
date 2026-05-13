@@ -2,9 +2,8 @@
 library(ggplot2)
 library(patchwork)
 
-USE_TURBO <- as.logical(as.integer(Sys.getenv("TURBO", unset = "1")))
-OUT_DIR   <- if (USE_TURBO) "results/dmr_benchmark_turbo" else "results/dmr_benchmark"
-PLOT_DIR  <- file.path(OUT_DIR, "plots")
+OUT_DIR  <- "results/dmr_benchmark"
+PLOT_DIR <- "results/dmr_benchmark/plots"
 dir.create(PLOT_DIR, recursive = TRUE, showWarnings = FALSE)
 
 csv_files <- list.files(OUT_DIR, pattern = "parameter_benchmark.*\\.csv", full.names = TRUE)

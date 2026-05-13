@@ -1,8 +1,7 @@
 .libPaths("~/R/library")
 # benchmark_permutations.R
-# Multiple permutation benchmark — runs stratified scramble 20 times
-# with different random seeds to get mean +/- SD signal/noise
-# Tests bins strict at all window sizes on chr1
+# Multiple permutation benchmark with resume from checkpoint
+# Random (non-stratified) shuffling as null model
 # SMA Epigenomics Pipeline — Muna Berhe, QMUL
 
 library(DMRcaller)
@@ -13,6 +12,7 @@ CHROM      <- "chr1"
 REGION_END <- 248956422
 N_PERMS    <- 20
 SEEDS      <- 1:N_PERMS
+CHECKPOINT_FILE <- file.path(OUT_DIR, "benchmark_permutations_checkpoint.rds")
 
 dir.create(OUT_DIR, recursive = TRUE, showWarnings = FALSE)
 
@@ -30,51 +30,107 @@ aso_ctrl <- readBismarkPool(c(
 message("ASO_VPA CpGs:  ", length(aso_vpa))
 message("ASO_CTRL CpGs: ", length(aso_ctrl))
 
-scramble_stratified <- function(dat1, dat2, seed=42) {
+# -------------------------------------------------------------------
+# Radu's fully random (non-stratified) permutation
+# -------------------------------------------------------------------
+scramble_data <- function(dat1, dat2, seed = 42) {
   set.seed(seed)
-  coverage <- mcols(dat1)$readsN
-  strata <- cut(coverage,
-                breaks = c(0, 5, 10, 20, 50, Inf),
-                labels = c("1-5", "6-10", "11-20", "21-50", "50+"),
-                include.lowest = TRUE)
-  idx <- seq_along(coverage)
-  for (s in levels(strata)) {
-    stratum_idx <- which(strata == s)
-    if (length(stratum_idx) > 1) idx[stratum_idx] <- sample(stratum_idx)
-  }
+  idx <- sample(seq_len(length(dat1)), size = length(dat1), replace = FALSE)
   dat1_scr <- dat1
   dat2_scr <- dat2
   mcols(dat1_scr)$readsM <- mcols(dat1)$readsM[idx]
   mcols(dat1_scr)$readsN <- mcols(dat1)$readsN[idx]
   mcols(dat2_scr)$readsM <- mcols(dat2)$readsM[idx]
   mcols(dat2_scr)$readsN <- mcols(dat2)$readsN[idx]
-  list(dat1=dat1_scr, dat2=dat2_scr)
+  list(dat1 = dat1_scr, dat2 = dat2_scr)
 }
 
 window_sizes <- c(100, 200, 300, 500, 1000, 2000)
-results <- list()
 
-message("\nComputing real DMR counts...")
-for (ws in window_sizes) {
-  regions <- GRanges("chr1", IRanges(
-    start = seq(1, REGION_END, by = ws), width = ws))
-  dmrs_real <- computeDMRs(aso_vpa, aso_ctrl,
-    regions=regions, context="CG", method="bins", binSize=ws,
-    test="fisher", pValueThreshold=0.01,
-    minCytosinesCount=4, minProportionDifference=0.2,
-    minGap=0, minSize=50, minReadsPerCytosine=4,
-    cores=32, parallel=TRUE)
-  n_real <- length(dmrs_real)
-  message("  ws=", ws, " real DMRs: ", n_real)
-  results[[paste("real", ws)]] <- data.frame(
-    window_size=ws, seed=NA, type="real", n_dmrs=n_real)
+# -------------------------------------------------------------------
+# Load or initialize checkpoint
+# -------------------------------------------------------------------
+results <- list()
+completed_real <- FALSE
+completed_seeds <- integer(0)
+
+if (file.exists(CHECKPOINT_FILE)) {
+  message("Loading checkpoint from ", CHECKPOINT_FILE)
+  ck <- readRDS(CHECKPOINT_FILE)
+  results         <- ck$results
+  completed_real  <- isTRUE(ck$completed_real)
+  completed_seeds <- ck$completed_seeds
+  message("  completed_real: ", completed_real)
+  if (length(completed_seeds) > 0) {
+    message("  completed_seeds: ", paste(completed_seeds, collapse = ", "))
+  }
+} else {
+  message("No checkpoint found; starting from scratch.")
 }
 
-for (seed in SEEDS) {
-  message("\n--- Permutation ", seed, "/", N_PERMS, " ---")
-  scr <- scramble_stratified(aso_vpa, aso_ctrl, seed=seed)
+save_checkpoint <- function() {
+  ck <- list(
+    results         = results,
+    completed_real  = completed_real,
+    completed_seeds = completed_seeds
+  )
+  saveRDS(ck, CHECKPOINT_FILE)
+  message("Checkpoint saved to ", CHECKPOINT_FILE)
+}
+
+# -------------------------------------------------------------------
+# Real DMR counts (once per window size)
+# -------------------------------------------------------------------
+if (!completed_real) {
+  message("\nComputing real DMR counts...")
   for (ws in window_sizes) {
-    regions <- GRanges("chr1", IRanges(
+    key <- paste("real", ws, sep = "_")
+    if (!is.null(results[[key]])) {
+      next
+    }
+    regions <- GRanges(CHROM, IRanges(
+      start = seq(1, REGION_END, by = ws), width = ws))
+    dmrs_real <- computeDMRs(aso_vpa, aso_ctrl,
+      regions=regions, context="CG", method="bins", binSize=ws,
+      test="fisher", pValueThreshold=0.01,
+      minCytosinesCount=4, minProportionDifference=0.2,
+      minGap=0, minSize=50, minReadsPerCytosine=4,
+      cores=32, parallel=TRUE)
+    n_real <- length(dmrs_real)
+    message("  ws=", ws, " real DMRs: ", n_real)
+    results[[key]] <- data.frame(
+      window_size=ws, seed=NA, type="real", n_dmrs=n_real)
+  }
+  completed_real <- TRUE
+  save_checkpoint()
+} else {
+  message("Real DMR counts already completed; skipping.")
+}
+
+# -------------------------------------------------------------------
+# Permutation loop with resume
+# -------------------------------------------------------------------
+for (seed in SEEDS) {
+  if (seed %in% completed_seeds) {
+    message("\n--- Seed ", seed, " already completed; skipping ---")
+    next
+  }
+  message("\n--- Permutation ", seed, "/", N_PERMS, " ---")
+  scr <- tryCatch({
+    scramble_data(aso_vpa, aso_ctrl, seed=seed)
+  }, error = function(e) {
+    message("  Error in scramble_data for seed ", seed, ": ", conditionMessage(e))
+    NULL
+  })
+  if (is.null(scr)) {
+    next
+  }
+  for (ws in window_sizes) {
+    key <- paste("scr", ws, seed, sep = "_")
+    if (!is.null(results[[key]])) {
+      next
+    }
+    regions <- GRanges(CHROM, IRanges(
       start = seq(1, REGION_END, by = ws), width = ws))
     dmrs_scr <- tryCatch({
       computeDMRs(scr$dat1, scr$dat2,
@@ -83,14 +139,23 @@ for (seed in SEEDS) {
         minCytosinesCount=4, minProportionDifference=0.2,
         minGap=0, minSize=50, minReadsPerCytosine=4,
         cores=32, parallel=TRUE)
-    }, error=function(e) NULL)
+    }, error=function(e) {
+      message("  Error in computeDMRs, ws=", ws, " seed=", seed, ": ", conditionMessage(e))
+      NULL
+    })
     n_scr <- if (!is.null(dmrs_scr)) length(dmrs_scr) else NA
     message("  ws=", ws, " seed=", seed, " scrambled: ", n_scr)
-    results[[paste("scr", ws, seed)]] <- data.frame(
+    results[[key]] <- data.frame(
       window_size=ws, seed=seed, type="scrambled", n_dmrs=n_scr)
   }
+  completed_seeds <- sort(unique(c(completed_seeds, seed)))
+  save_checkpoint()
 }
 
+# -------------------------------------------------------------------
+# Combine and write outputs
+# -------------------------------------------------------------------
+message("\nCombining results...")
 df <- do.call(rbind, results)
 write.csv(df, file.path(OUT_DIR, "benchmark_permutations_raw.csv"), row.names=FALSE)
 

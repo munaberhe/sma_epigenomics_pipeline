@@ -1,0 +1,92 @@
+#!/bin/bash
+#SBATCH --job-name=smn1_methext
+#SBATCH --output=logs/smn1_methext_%A_%a.log
+#SBATCH --error=logs/smn1_methext_%A_%a.err
+#SBATCH --time=4-00:00:00
+#SBATCH --mem=24G
+#SBATCH --cpus-per-task=4
+#SBATCH --partition=compute
+#SBATCH --array=1-12%6
+#SBATCH --requeue
+
+set -euo pipefail
+
+PROJECT_DIR=/data/scratch/bt25018/sma_epigenomics_pipeline
+cd "$PROJECT_DIR"
+
+mkdir -p logs
+
+source scripts/check_scratch.sh 100
+
+SAMPLES=(
+    "ASO_CTRL_1" "ASO_CTRL_2" "ASO_CTRL_3"
+    "ASO_VPA_1"  "ASO_VPA_2"  "ASO_VPA_3"
+    "Scramble_CTRL_1" "Scramble_CTRL_2" "Scramble_CTRL_3"
+    "Scramble_VPA_1"  "Scramble_VPA_2"  "Scramble_VPA_3"
+)
+IDX=$((SLURM_ARRAY_TASK_ID - 1))
+SAMPLE=${SAMPLES[$IDX]}
+
+ALIGN_DIR=results/alignments_smn1_masked/bs
+DEDUP_DIR=results/alignments_smn1_masked/dedup
+EXTRACT_DIR=results/alignments_smn1_masked/methylation
+CX_DIR=results/alignments_smn1_masked/cx_report
+
+mkdir -p "$DEDUP_DIR" "$EXTRACT_DIR" "$CX_DIR"
+
+DONE=$CX_DIR/.${SAMPLE}.cx.done
+
+module unload spack/0.23.1 2>/dev/null || true
+source ~/.bashrc
+conda activate sma_epigenomics_pipeline
+
+if [[ -f "$DONE" ]]; then
+    echo "[$(date)] $SAMPLE already extracted, skipping."
+    exit 0
+fi
+
+BAM=""
+for cand in \
+    "$ALIGN_DIR/${SAMPLE}_1_val_1_bismark_bt2_pe.bam" \
+    "$ALIGN_DIR/${SAMPLE}_1_val_1_bismark_bt2_PE.bam"; do
+    [[ -f "$cand" ]] && BAM="$cand" && break
+done
+if [[ -z "$BAM" ]]; then
+    echo "ERROR: No aligned BAM found for $SAMPLE in $ALIGN_DIR"
+    exit 1
+fi
+
+echo "[$(date)] $SAMPLE BAM = $BAM"
+
+DEDUP_BAM=$DEDUP_DIR/$(basename "${BAM%.bam}").deduplicated.bam
+if [[ ! -f "$DEDUP_BAM" ]]; then
+    echo "[$(date)] Deduplicating $SAMPLE"
+    deduplicate_bismark --paired --bam --output_dir "$DEDUP_DIR" "$BAM"
+else
+    echo "[$(date)] Dedup BAM already exists, reusing."
+fi
+
+echo "[$(date)] Methylation extractor for $SAMPLE"
+bismark_methylation_extractor \
+    --paired-end \
+    --comprehensive \
+    --multicore 4 \
+    --bedGraph \
+    --CX \
+    --genome_folder data/reference_smn1_masked \
+    --output "$EXTRACT_DIR" \
+    "$DEDUP_BAM"
+
+CX_SRC=$(ls "$EXTRACT_DIR"/${SAMPLE}_1_val_1_bismark_bt2_*deduplicated*.CX_report.txt.gz 2>/dev/null | head -1)
+if [[ -z "$CX_SRC" ]]; then
+    CX_SRC=$(ls "$EXTRACT_DIR"/${SAMPLE}_1_val_1_bismark_bt2_*deduplicated*.CX_report.txt 2>/dev/null | head -1)
+fi
+if [[ -z "$CX_SRC" ]]; then
+    echo "ERROR: CX report not produced for $SAMPLE"
+    exit 1
+fi
+
+cp -p "$CX_SRC" "$CX_DIR/${SAMPLE}.CX_report.txt$( [[ $CX_SRC == *.gz ]] && echo .gz )"
+
+touch "$DONE"
+echo "[$(date)] $SAMPLE methylation extraction complete."
