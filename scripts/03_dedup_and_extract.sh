@@ -73,6 +73,7 @@ bismark_methylation_extractor \
     --multicore 4 \
     --bedGraph \
     --CX \
+    --cytosine_report \
     --genome_folder data/reference_smn1_masked \
     --output "$EXTRACT_DIR" \
     "$DEDUP_BAM"
