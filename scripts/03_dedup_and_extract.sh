@@ -3,10 +3,10 @@
 #SBATCH --output=logs/smn1_methext_%A_%a.log
 #SBATCH --error=logs/smn1_methext_%A_%a.err
 #SBATCH --time=4-00:00:00
-#SBATCH --mem=24G
-#SBATCH --cpus-per-task=4
+#SBATCH --mem=64G
+#SBATCH --cpus-per-task=8
 #SBATCH --partition=compute
-#SBATCH --array=1-12%6
+#SBATCH --array=1-12%1
 #SBATCH --requeue
 
 set -euo pipefail
@@ -45,36 +45,33 @@ if [[ -f "$DONE" ]]; then
     exit 0
 fi
 
-BAM=""
-for cand in \
-    "$ALIGN_DIR/${SAMPLE}_1_val_1_bismark_bt2_pe.bam" \
-    "$ALIGN_DIR/${SAMPLE}_1_val_1_bismark_bt2_PE.bam"; do
-    [[ -f "$cand" ]] && BAM="$cand" && break
-done
-if [[ -z "$BAM" ]]; then
-    echo "ERROR: No aligned BAM found for $SAMPLE in $ALIGN_DIR"
-    exit 1
-fi
-
-echo "[$(date)] $SAMPLE BAM = $BAM"
-
-DEDUP_BAM=$DEDUP_DIR/$(basename "${BAM%.bam}").deduplicated.bam
+DEDUP_BAM="$DEDUP_DIR/${SAMPLE}_1_val_1_bismark_bt2_pe.deduplicated.bam"
 if [[ ! -f "$DEDUP_BAM" ]]; then
+    BAM=""
+    for cand in \
+        "$ALIGN_DIR/${SAMPLE}_1_val_1_bismark_bt2_pe.bam" \
+        "$ALIGN_DIR/${SAMPLE}_1_val_1_bismark_bt2_PE.bam"; do
+        [[ -f "$cand" ]] && BAM="$cand" && break
+    done
+    if [[ -z "$BAM" ]]; then
+        echo "ERROR: No aligned BAM found for $SAMPLE in $ALIGN_DIR"
+        exit 1
+    fi
     echo "[$(date)] Deduplicating $SAMPLE"
     deduplicate_bismark --paired --bam --output_dir "$DEDUP_DIR" "$BAM"
 else
-    echo "[$(date)] Dedup BAM already exists, reusing."
+    echo "[$(date)] Dedup BAM already exists, skipping to extraction."
 fi
 
 echo "[$(date)] Methylation extractor for $SAMPLE"
 bismark_methylation_extractor \
     --paired-end \
     --comprehensive \
-    --multicore 4 \
+    --multicore 8 \
     --bedGraph \
     --CX \
     --cytosine_report \
-    --genome_folder data/reference_smn1_masked \
+    --genome_folder /data/scratch/bt25018/sma_epigenomics_pipeline/data/reference_smn1_masked \
     --output "$EXTRACT_DIR" \
     "$DEDUP_BAM"
 
@@ -87,7 +84,8 @@ if [[ -z "$CX_SRC" ]]; then
     exit 1
 fi
 
-cp -p "$CX_SRC" "$CX_DIR/${SAMPLE}.CX_report.txt$( [[ $CX_SRC == *.gz ]] && echo .gz )"
+cp -p "$CX_SRC" "$CX_DIR/${SAMPLE}.CX_report.txt"
+gzip "$CX_DIR/${SAMPLE}.CX_report.txt"
 
 touch "$DONE"
 echo "[$(date)] $SAMPLE methylation extraction complete."
