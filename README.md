@@ -1,75 +1,83 @@
 # SMA Epigenomics Pipeline
-MSc Bioinformatics thesis project — Muna Berhe, Queen Mary University of London, 2026
-Supervisor: Professor Radu Zabet
+
+A WGBS analysis pipeline for assessing genome-wide pleiotropic epigenetic effects of combined nusinersen (ASO) and valproic acid (VPA) treatment in Spinal Muscular Atrophy.
+Built as an MSc Bioinformatics thesis project, Queen Mary University of London, 2026.
+
+> For a full record of parameter decisions and rationale see FINAL_SCRIPTS.md
+
+## Table of Contents
+
+- [Background](#background)
+- [Experiment Design](#experiment-design)
+- [Pipeline Structure](#pipeline-structure)
+- [Tech Stack](#tech-stack)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Running the Pipeline](#running-the-pipeline)
+- [Key Parameters](#key-parameters)
+- [Repository Layout](#repository-layout)
+- [Key References](#key-references)
 
 ---
 
-## What this is
-
-This pipeline was built for my thesis on assessing genome-wide pleiotropic epigenetic effects of a combined ASO1+VPA treatment in Spinal Muscular Atrophy. The biological question is whether valproic acid — a broad HDAC inhibitor used alongside an antisense oligonucleotide targeting SMN2 exon 7 — introduces off-target DNA methylation changes across the genome.
-
-The pipeline runs on the Apocrita HPC cluster at QMUL and covers the full analysis from raw FASTQ files through to differential methylation analysis and pathway enrichment.
-
 ## Background
 
-SMA is caused by loss-of-function mutations in SMN1. The SMN2 paralog compensates partially but skips exon 7 in most transcripts, producing very little functional protein. Nusinersen corrects this splicing but Marasco et al. (2022, Cell) showed it also deposits the repressive mark H3K9me2 at the SMN2 locus. VPA counteracts this chromatin compaction and the combined ASO1+VPA treatment outperforms ASO1 alone in patient fibroblasts and mouse models. This project characterises the genome-wide DNA methylation landscape of the combined treatment, identifying which genomic regions and biological pathways are epigenetically affected.
+SMA is caused by loss-of-function mutations in SMN1. The SMN2 paralog compensates partially but skips exon 7 in most transcripts, producing very little functional protein. Nusinersen (Spinraza) corrects this splicing defect via antisense oligonucleotide targeting. Marasco et al. (2022, Cell) showed that nusinersen also deposits the repressive mark H3K9me2 at the SMN2 locus. Valproic acid (VPA), a broad HDAC inhibitor, counteracts this chromatin compaction and the combined ASO+VPA treatment outperforms ASO alone in patient fibroblasts and mouse models.
 
-## Experimental design
+This pipeline investigates the genome-wide epigenetic effects of this combination therapy — specifically, whether VPA has off-target methylation effects beyond the SMN locus.
 
-Four conditions, three biological replicates each (12 samples total):
+---
 
-| Condition | Treatment | Purpose |
-|---|---|---|
-| ASO_CTRL | ASO1 only | ASO1 effect on methylation |
-| ASO_VPA | ASO1 + VPA | Combined treatment effect |
-| Scramble_CTRL | Scrambled ASO only | Negative control |
-| Scramble_VPA | Scrambled ASO + VPA | VPA effect alone |
+## Experiment Design
 
-Sequencing: paired-end whole genome bisulfite sequencing (WGBS), 151bp, ~330M reads per sample, reference genome hg38.
+2x2 factorial WGBS experiment in motor neuron-like cells.
 
-## Pipeline structure
+| Condition | Replicates | Description |
+|-----------|-----------|-------------|
+| ASO_CTRL | 3 | Nusinersen only (100 nM, saturating dose) |
+| ASO_VPA | 3 | Nusinersen + VPA (combination treatment) |
+| Scramble_CTRL | 3 | Scramble ASO — baseline control |
+| Scramble_VPA | 3 | VPA only |
 
-Raw FASTQ files go through QC (FastQC/MultiQC) and trimming (Trim Galore), then bisulfite alignment with Bismark. Aligned reads are deduplicated and methylation is extracted across all three cytosine contexts (CpG, CHG, CHH). Differential methylation regions are called with DMRcaller, annotated with ChIPseeker, and pathway enrichment is performed with clusterProfiler.
+Three contrasts: ASO_VPA vs Scramble_CTRL (primary), Scramble_VPA vs Scramble_CTRL (VPA alone), ASO_CTRL vs Scramble_CTRL (negative control).
 
-Everything is managed by Snakemake and runs on SLURM. All resource definitions (memory, runtime) are embedded in the Snakefile — no external flags needed.
+---
 
-## Current pipeline status
+## Pipeline Structure
 
-| Stage | Status |
-|---|---|
-| FastQC (raw reads) | Complete — all 24 files |
-| MultiQC | Complete |
-| Trim Galore | Complete — all 12 samples |
-| FastQC (trimmed reads) | Complete — all 24 files |
-| Bismark alignment | In progress — 2 samples running simultaneously on ehc nodes |
-| Bismark deduplication | Pending |
-| Methylation extraction | Pending |
-| DMRcaller | Pending — parameters TBD with supervisor |
-| ChIPseeker annotation | Pending |
-| clusterProfiler enrichment | Pending |
+Raw FASTQ files are quality-trimmed with Trim Galore, then aligned to an SMN1-masked hg38 reference using Bismark. SMN1 is hard-masked with Ns so reads from both SMN1 and SMN2 map unambiguously to SMN2, resolving the paralog dropout problem. Aligned BAMs are deduplicated, methylation-extracted, and a genome-wide cytosine report is generated via coverage2cytosine. CX reports are split by chromosome (CpG only) for memory-efficient DMR calling. DMRcaller runs per-chromosome in parallel SLURM jobs and results are combined. Annotations use ChIPseeker and pathway enrichment uses clusterProfiler.
 
-## Key QC findings
+---
 
-- Read quality: Phred 38-40 across all samples — excellent
-- GC content: ~21-23% — expected for bisulfite sequencing due to C→T conversion
-- Sequence length: uniform 151bp across all samples
-- Duplication: 13-31% — within expected range for WGBS
-- Adapter content: detected in raw reads, removed by Trim Galore
+## Tech Stack
 
-## Repository layout
+| Component | Tool |
+|-----------|------|
+| Alignment | Bismark v0.25.1 + Bowtie2 |
+| Reference | hg38 (GRCh38), SMN1-masked |
+| Deduplication | deduplicate_bismark |
+| Methylation extraction | bismark_methylation_extractor + coverage2cytosine |
+| DMR calling | DMRcaller (Bioconductor) |
+| Annotation | ChIPseeker, TxDb.Hsapiens.UCSC.hg38.knownGene |
+| Enrichment | clusterProfiler (GO + KEGG) |
+| Workflow | SLURM array jobs (Apocrita HPC, QMUL) |
+| Language | R 4.5.1, bash |
 
-    configs/        pipeline parameters (config.yaml)
-    data/           processed FASTQ files, reference genome and indices
-    scripts/        R analysis scripts and SLURM submission scripts
-    results/        QC reports, BAM files, methylation data, differential results, figures
-    logs/           SLURM and tool logs
-    docs/           notes and documentation
-    Snakefile       main workflow definition
-    environment.yml conda environment
+---
 
-## Setup
+## Prerequisites
 
-Clone the repo and set up the conda environment:
+- Apocrita HPC account (QMUL) or equivalent SLURM cluster
+- conda (docs.conda.io)
+- R 4.5.1+ available via module load or conda
+- ~3TB scratch storage for intermediate files
+- ~2TB external storage for BAM backups
+
+---
+
+## Installation
+
+Clone the repository and set up the conda environment:
 
     git clone https://github.com/munaberhe/sma_epigenomics_pipeline.git
     cd sma_epigenomics_pipeline
@@ -79,70 +87,109 @@ Clone the repo and set up the conda environment:
 Install R packages:
 
     install.packages("BiocManager")
-    BiocManager::install(c(
-      "DMRcaller", "bsseq",
-      "clusterProfiler", "org.Hs.eg.db",
-      "TxDb.Hsapiens.UCSC.hg38.knownGene",
-      "ChIPseeker", "GenomicRanges", "rtracklayer"
-    ))
-    install.packages(c("tidyverse", "ggplot2", "RColorBrewer"))
+    BiocManager::install(c("DMRcaller","GenomicRanges","ChIPseeker",
+      "clusterProfiler","org.Hs.eg.db",
+      "TxDb.Hsapiens.UCSC.hg38.knownGene","R.utils"))
 
-Download the reference genome and build the Bismark index:
+Download hg38 and build the SMN1-masked Bismark index:
 
-    sbatch scripts/download_hg38.sh
-    sbatch scripts/build_bismark_index.sh
+    wget https://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/hg38.fa.gz -P data/reference/
+    gunzip data/reference/hg38.fa.gz
+    sbatch scripts/01_mask_and_index.sh
 
-Update `configs/config.yaml` with your sample paths before running.
+---
 
-## Running the pipeline
+## Running the Pipeline
 
-Set these before running Snakemake on the login node:
+Step 1 — Alignment (all 12 samples as SLURM array):
 
-    export OPENBLAS_NUM_THREADS=1
-    ulimit -n 4096
+    sbatch scripts/02_bismark_align.sh
 
-Dry run first:
+Step 2 — Deduplication and methylation extraction:
 
-    snakemake --dry-run --cores 1
+    sbatch scripts/03_dedup_and_extract.sh
 
-Submit to SLURM:
+Step 3 — Split CX reports by chromosome:
 
-    snakemake --unlock
+    sbatch --dependency=afterok:<METH_JOB> scripts/04_split_by_chr.sh
 
-    nohup snakemake \
-      --executor slurm \
-      --jobs 2 \
-      --latency-wait 60 \
-      --keep-going \
-      --rerun-incomplete \
-      --default-resources slurm_partition=compute \
-      > logs/snakemake_run.log 2>&1 &
+Step 4 — Per-chromosome DMR calling (all 3 contrasts in parallel):
 
-**Important disk space note:** Each sample generates ~500GB of temporary files during alignment with `--parallel 4`. With a 3TB scratch quota, run a maximum of 2 jobs simultaneously. If quota is increased, `--jobs` can be raised proportionally — each additional job needs ~500GB headroom.
+    bash scripts/submit_dmr_by_chr.sh
+    Rscript scripts/dmrcaller_combine_chr.R
 
-## Bismark alignment parameters
+Step 5 — SMN2 locus masked analysis:
 
-Apocrita-optimised configuration for ehc nodes (384 CPU, 2.3TB RAM):
+    Rscript scripts/dmrcaller_smn_locus_masked.R
 
-`--bowtie2 -N 1 -L 20 --score_min L,0,-0.6 --parallel 4 -p 2`
+Step 6 — Annotation and enrichment:
 
-- `-N 1` — allows 1 mismatch in seed
-- `-L 20` — shorter seed length for more sensitive alignment
-- `--score_min L,0,-0.6` — relaxed scoring to improve mapping efficiency
-- `--parallel 4` — 4 parallel Bismark instances for speed
-- `-p 2` — 2 Bowtie2 threads per instance (8 alignment threads total)
-- `constraint="ehc"` — targets high-CPU ehc nodes (384 cores) for best performance
-- `--temp_dir` — per-sample scratch temp directory to avoid race conditions
-- 32 SLURM threads, 128GB memory per job
+    Rscript scripts/dmr_annotate.R
 
-**Note on bowtie2 version:** bowtie2 is pinned to 2.5.4 (not 2.5.5) to avoid AVX-512 fallback issues on Apocrita compute nodes.
+---
 
-## Reference genome
+## Key Parameters
 
-hg38 (GRCh38), bisulfite index built with Bismark genome preparation. Raw FASTQ files are stored in `/data/Blizard-ZabetLab/SMA_DNAm/` on the lab drive — the scratch copy was removed after trimming to conserve quota.
+All DMR parameters confirmed with supervisor Dr Radu Zabet, 5 May 2026.
 
-## Key references
+| Parameter | Value | Rationale |
+|-----------|-------|-----------|
+| method | bins | Fixed-width windows, robust at ~27x pooled coverage |
+| binSize | 300 bp | Benchmarked against chr1 permutation null |
+| minProportionDifference | 0.20 | Filters biologically trivial changes |
+| pValueThreshold | 0.01 | Standard genome-wide threshold |
+| minCytosinesCount | 4 | Prevents single-CpG noise calls |
+| minReadsPerCytosine | 4 | Confirmed from benchmark scripts |
+| minGap | 300 | One bin width — prevents merge hang on VPA contrasts |
+| test | score | Rao test, appropriate at ~27x pooled coverage |
+| context | CG | CpG only — CHG/CHH near-zero in human somatic cells |
 
-- Marasco et al. (2022) Cell 185:2057-2070
-- Catoni et al. (2018) Nucleic Acids Research 46:e114
-- Krueger & Andrews (2011) Bioinformatics 27:1571-1572
+See FINAL_SCRIPTS.md for full decision rationale.
+
+---
+
+## Repository Layout
+
+    sma_epigenomics_pipeline/
+    scripts/
+        01_mask_and_index.sh              Mask SMN1, build Bismark index
+        02_bismark_align.sh               WGBS alignment (SLURM array)
+        03_dedup_and_extract.sh           Dedup + methylation extraction
+        04_split_by_chr.sh                Split CX reports by chromosome
+        submit_dmr_by_chr.sh              Submit per-chromosome DMR jobs
+        dmrcaller_by_chr.R                Per-chromosome DMR calling
+        dmrcaller_combine_chr.R           Combine per-chromosome results
+        dmrcaller_genome_wide.R           Genome-wide DMR calling (single job)
+        dmrcaller_smn_locus_masked.R      SMN2 locus profile (masked data)
+        smn_locus_dmrcaller_comparisons.R SMN1/2 unmasked baseline
+        coverage_4lines_per_condition.R   CpG coverage QC
+        dmr_annotate.R                    DMR annotation + GO/KEGG enrichment
+        check_scratch.sh                  Scratch space pre-flight check
+    data/
+        reference/                        hg38 FASTA
+        reference_smn1_masked/            SMN1-masked reference + Bismark index
+        processed/                        Trimmed FASTQ files
+    results/
+        alignments_smn1_masked/           Masked BAMs, dedup, CX reports, by_chr
+        alignments/                       Original unmasked by_chr files
+        dmr/                              DMR RDS, BED, summary files
+        qc/                               Coverage plots, SMN locus plots
+    logs/                                 SLURM and tool logs
+    FINAL_SCRIPTS.md                      Parameter rationale for all scripts
+    README.md
+
+---
+
+## Key References
+
+- Marasco et al. (2022) Cell 185:2057-2070 — nusinersen + H3K9me2 at SMN2
+- Catoni et al. (2018) Nucleic Acids Research 46:e114 — DMRcaller
+- Kornblihtt et al. — gene looping and splicing regulation at SMN2
+- Krueger & Andrews (2011) Bioinformatics — Bismark
+- Yu et al. (2015) OMICS — ChIPseeker
+
+---
+
+Muna Berhe · bt25018 · MSc Bioinformatics, QMUL 2025-2026
+Supervisor: Dr Radu Zabet
+Collaborators: Prof Alberto Kornblihtt (IFIBYNE-UBA-CONICET), Dr Emilia Haberfeld, Dr Marcos Miretti
