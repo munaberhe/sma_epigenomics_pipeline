@@ -1,69 +1,23 @@
-# Sample configuration
-samples:
-  ASO_CTRL_1:
-    r1: "data/raw/ASO_CTRL_1_1.fastq.gz"
-    r2: "data/raw/ASO_CTRL_1_2.fastq.gz"
-    condition: "ASO_CTRL"
-  ASO_CTRL_2:
-    r1: "data/raw/ASO_CTRL_2_1.fastq.gz"
-    r2: "data/raw/ASO_CTRL_2_2.fastq.gz"
-    condition: "ASO_CTRL"
-  ASO_CTRL_3:
-    r1: "data/raw/ASO_CTRL_3_1.fastq.gz"
-    r2: "data/raw/ASO_CTRL_3_2.fastq.gz"
-    condition: "ASO_CTRL"
-  ASO_VPA_1:
-    r1: "data/raw/ASO_VPA_1_1.fastq.gz"
-    r2: "data/raw/ASO_VPA_1_2.fastq.gz"
-    condition: "ASO_VPA"
-  ASO_VPA_2:
-    r1: "data/raw/ASO_VPA_2_1.fastq.gz"
-    r2: "data/raw/ASO_VPA_2_2.fastq.gz"
-    condition: "ASO_VPA"
-  ASO_VPA_3:
-    r1: "data/raw/ASO_VPA_3_1.fastq.gz"
-    r2: "data/raw/ASO_VPA_3_2.fastq.gz"
-    condition: "ASO_VPA"
-  Scramble_CTRL_1:
-    r1: "data/raw/Scramble_CTRL_1_1.fastq.gz"
-    r2: "data/raw/Scramble_CTRL_1_2.fastq.gz"
-    condition: "Scramble_CTRL"
-  Scramble_CTRL_2:
-    r1: "data/raw/Scramble_CTRL_2_1.fastq.gz"
-    r2: "data/raw/Scramble_CTRL_2_2.fastq.gz"
-    condition: "Scramble_CTRL"
-  Scramble_CTRL_3:
-    r1: "data/raw/Scramble_CTRL_3_1.fastq.gz"
-    r2: "data/raw/Scramble_CTRL_3_2.fastq.gz"
-    condition: "Scramble_CTRL"
-  Scramble_VPA_1:
-    r1: "data/raw/Scramble_VPA_1_1.fastq.gz"
-    r2: "data/raw/Scramble_VPA_1_2.fastq.gz"
-    condition: "Scramble_VPA"
-  Scramble_VPA_2:
-    r1: "data/raw/Scramble_VPA_2_1.fastq.gz"
-    r2: "data/raw/Scramble_VPA_2_2.fastq.gz"
-    condition: "Scramble_VPA"
-  Scramble_VPA_3:
-    r1: "data/raw/Scramble_VPA_3_1.fastq.gz"
-    r2: "data/raw/Scramble_VPA_3_2.fastq.gz"
-    condition: "Scramble_VPA"
-# Paths
-raw_dir: "data/raw"
-ref_dir: "data/reference"
-results_dir: "results"
-# Reference genome
-genome: "data/reference/hg38.fa"
-gtf: "data/reference/hg38.ensGene.gtf"
-star_index: "data/reference/star_index"
-bismark_index: "data/reference"
-# Parameters
-trimming:
-  quality: 20
-  min_length: 20
-deseq2:
-  padj_threshold: 0.05
-  lfc_threshold: 1
-dmrcaller:
-  min_coverage: 10
-  context: "CpG"
+# Pipeline configuration - SMA Epigenomics WGBS
+# Muna Berhe, bt25018, QMUL MSc Bioinformatics
+
+# Reference genome paths
+reference: data/reference
+reference_masked: data/reference_smn1_masked
+
+# Raw data location
+raw_data: data/raw
+
+# SMN1 masking coordinates (hg38, 1-based)
+# These are the coordinates confirmed and used in the pipeline
+smn1_mask_chr: chr5
+smn1_mask_start: 70924941
+smn1_mask_end: 70953015
+
+# DMR calling parameters - locked with Radu Zabet, 5 May 2026
+dmr_bin_size: 300
+dmr_min_diff: 0.20
+dmr_p_value: 0.01
+dmr_min_cpgs: 4
+dmr_min_gap: 300
+dmr_permutations: 20

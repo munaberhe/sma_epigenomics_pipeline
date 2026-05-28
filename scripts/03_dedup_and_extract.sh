@@ -13,9 +13,7 @@ set -euo pipefail
 
 PROJECT_DIR=/data/scratch/bt25018/sma_epigenomics_pipeline
 cd "$PROJECT_DIR"
-
 mkdir -p logs
-
 source scripts/check_scratch.sh 100
 
 SAMPLES=(
@@ -63,6 +61,11 @@ else
     echo "[$(date)] Dedup BAM already exists, skipping to extraction."
 fi
 
+samtools quickcheck "$DEDUP_BAM" || {
+    echo "ERROR: Dedup BAM is truncated: $DEDUP_BAM"
+    exit 1
+}
+
 echo "[$(date)] Methylation extractor for $SAMPLE"
 bismark_methylation_extractor \
     --paired-end \
@@ -75,6 +78,10 @@ bismark_methylation_extractor \
     --output "$EXTRACT_DIR" \
     "$DEDUP_BAM"
 
+echo "[$(date)] Removing CHG/CHH context files for $SAMPLE"
+rm -f "$EXTRACT_DIR"/CHG_context_${SAMPLE}*.txt
+rm -f "$EXTRACT_DIR"/CHH_context_${SAMPLE}*.txt
+
 CX_SRC=$(ls "$EXTRACT_DIR"/${SAMPLE}_1_val_1_bismark_bt2_*deduplicated*.CX_report.txt.gz 2>/dev/null | head -1)
 if [[ -z "$CX_SRC" ]]; then
     CX_SRC=$(ls "$EXTRACT_DIR"/${SAMPLE}_1_val_1_bismark_bt2_*deduplicated*.CX_report.txt 2>/dev/null | head -1)
@@ -84,8 +91,8 @@ if [[ -z "$CX_SRC" ]]; then
     exit 1
 fi
 
-cp -p "$CX_SRC" "$CX_DIR/${SAMPLE}.CX_report.txt"
-gzip "$CX_DIR/${SAMPLE}.CX_report.txt"
+gzip -c "$CX_SRC" > "$CX_DIR/${SAMPLE}.CX_report.txt.gz"
+
 
 touch "$DONE"
 echo "[$(date)] $SAMPLE methylation extraction complete."
