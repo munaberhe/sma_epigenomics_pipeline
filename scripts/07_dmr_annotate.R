@@ -14,7 +14,9 @@ txdb <- TxDb.Hsapiens.UCSC.hg38.knownGene
 
 contrasts <- c("ASO_VPA_vs_Scramble_CTRL",
                "Scramble_VPA_vs_Scramble_CTRL",
-               "ASO_CTRL_vs_Scramble_CTRL")
+               "ASO_CTRL_vs_Scramble_CTRL",
+               "ASO_VPA_vs_ASO_CTRL",
+               "ASO_VPA_vs_Scramble_VPA")
 
 for (contrast in contrasts) {
   message("\n=== Annotating: ", contrast, " ===")

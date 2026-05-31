@@ -195,8 +195,8 @@ for (comp in COMPARISONS) {
     pdf_path <- file.path(out_dir,
                           sprintf("smn_locus_dmrcaller_%s.pdf", comp$name))
     message("\nPlotting: ", comp$name)
-    pdf(pdf_path, width = 11, height = 8.5)
-    par(mfrow = c(2,1), mar = c(5,4,3,1)+0.1, cex = 0.9)
+    pdf(pdf_path, width = 11, height = 8.5, bg="white")
+    par(mfrow = c(2,1), mar = c(5,4,3,1)+0.1, cex = 0.9, bg="white", col.axis="black", col.lab="black", col.main="black", fg="black")
     plot_one(comp, "SMN1")
     plot_one(comp, "SMN2")
     dev.off()
@@ -206,8 +206,8 @@ for (comp in COMPARISONS) {
 # Combined PDF — all 3 comparisons, width=16 for Radu
 combined_pdf <- file.path(out_dir, "smn_locus_dmrcaller_all_comparisons.pdf")
 message("\nPlotting combined: ", combined_pdf)
-pdf(combined_pdf, width = 16, height = 14)
-par(mfrow = c(3,2), mar = c(5,4,3,1)+0.1, cex = 0.7)
+pdf(combined_pdf, width = 16, height = 14, bg="white")
+par(mfrow = c(3,2), mar = c(5,4,3,1)+0.1, cex = 0.7, bg="white", col.axis="black", col.lab="black", col.main="black", fg="black")
 for (comp in COMPARISONS) {
     plot_one(comp, "SMN1")
     plot_one(comp, "SMN2")

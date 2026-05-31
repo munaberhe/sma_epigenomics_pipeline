@@ -1,7 +1,6 @@
 # =============================================================================
-# 05_smn2_locus_final_v2.R
+# 05_smn2_locus_final.R
 # SMN locus profile — masked and unmasked, plotLocalMethylationProfile
-# Fixed: CpG-only filter, correct pooling, no DMR overlay (0 DMRs at locus)
 # =============================================================================
 suppressPackageStartupMessages({
   library(DMRcaller)
@@ -151,8 +150,8 @@ for (alignment in c("masked","unmasked")) {
   for (ct in COMPARISONS) {
     fname <- sprintf("SMN_locus_%s_%s.pdf", alignment, ct$name)
     message("  Plotting: ", fname)
-    pdf(file.path(OUT_DIR, fname), width=11, height=8.5)
-    par(mfrow=c(2,1), mar=c(5,4,3,1)+0.1, cex=0.9)
+    pdf(file.path(OUT_DIR, fname), width=11, height=8.5, bg="white")
+    par(mfrow=c(2,1), mar=c(5,4,3,1)+0.1, cex=0.9, bg="white", col.axis="black", col.lab="black", col.main="black", fg="black")
     plot_one(pooled, ct, "SMN1")
     plot_one(pooled, ct, "SMN2")
     dev.off()
@@ -160,8 +159,8 @@ for (alignment in c("masked","unmasked")) {
 
   fname_all <- sprintf("SMN_locus_%s_all_comparisons.pdf", alignment)
   message("  Plotting combined: ", fname_all)
-  pdf(file.path(OUT_DIR, fname_all), width=16, height=14)
-  par(mfrow=c(3,2), mar=c(5,4,3,1)+0.1, cex=0.7)
+  pdf(file.path(OUT_DIR, fname_all), width=16, height=14, bg="white")
+  par(mfrow=c(3,2), mar=c(5,4,3,1)+0.1, cex=0.7, bg="white", col.axis="black", col.lab="black", col.main="black", fg="black")
   for (ct in COMPARISONS) {
     plot_one(pooled, ct, "SMN1")
     plot_one(pooled, ct, "SMN2")
@@ -269,7 +268,7 @@ for (alignment in c("masked","unmasked")) {
     plot_layout(guides="collect") +
     plot_annotation(
       title    = sprintf("SMN locus methylation — %s alignment", alignment),
-      subtitle = sprintf("DMRcaller %dbp bins, pooled replicates, CG context only", WIN_LOWRES),
+      subtitle = sprintf("Methylation profile: %dbp smoothing window | DMR calling: 300bp bins | pooled replicates, CG context only", WIN_LOWRES),
       theme    = theme(plot.title=element_text(face="bold", size=12),
                        plot.subtitle=element_text(size=9, colour="grey30"))
     ) & theme(legend.position="right")
