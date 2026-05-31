@@ -49,9 +49,6 @@ rule all:
         expand("results/dmr/dmr_{contrast}.rds", contrast=CONTRASTS),
         # ChIPseeker annotation with GO/KEGG enrichment
         expand("results/dmr_annotation/{contrast}_annotated.csv", contrast=CONTRASTS),
-        # QC plots - PCA and permutation null
-        "results/dmr_qc/sample_PCA.pdf",
-        "results/dmr_qc/permutation_null_distribution.pdf",
         # Top 10 hypomethylated candidates per contrast (composite ranking)
         expand("results/dmr_annotation/{contrast}_top10_hypo_v2.csv", contrast=CONTRASTS),
         # Coverage QC - replicates vs pooled curves
@@ -59,6 +56,23 @@ rule all:
         # SMN locus plots - main figures for thesis
         "results/smn2_locus_final/SMN_locus_masked_all_comparisons.pdf",
         "results/smn2_locus_final/SMN_locus_masked_lowres_smooth.pdf",
+        # DMR plots and locus overlays
+        expand("results/dmr/plots/{contrast}_DMRs_per_chromosome.pdf", contrast=CONTRASTS),
+        expand("results/dmr/plots/{contrast}_methylation_difference.pdf", contrast=CONTRASTS),
+        "results/dmr/plots/annotated/RNA45SN2_all_contrasts.pdf",
+        "results/dmr/plots/annotated/MTA1-DT_all_contrasts.pdf",
+        # QC
+        "results/dmr_qc/sample_PCA_12samples_chr1.pdf",
+        "results/qc/additional_qc/mbias_CpG_all_samples.pdf",
+        # Lowres profiles
+        "results/lowres_profiles/lowres_allgroups_chrX_500kb.pdf",
+        "results/lowres_profiles/lowres_allgroups_chr5_SMN2_10kb.pdf",
+        # Overlap and enrichment
+        "results/dmr_overlap/dmr_upset_plot.pdf",
+        "results/h3k9me2_overlap/h3k9me2_signal_boxplot.pdf",
+        "results/tf_motif/motif_enrichment_volcano.pdf",
+        "results/splice_junction/splice_junction_distance_density.pdf",
+        "results/dmr_annotation/msigdb_v2/ASO_specific_msigdb_all_combined.pdf",
 
 
 rule trim_galore:
@@ -328,9 +342,9 @@ rule dmr_calling:
         runtime = 360,
     shell:
         """
-        R_LIBS_USER={R_LIBS} {RSCRIPT} scripts/06b_dmrcaller_by_chr.R \
+        R_LIBS_USER={R_LIBS} {RSCRIPT} scripts/06_dmrcaller_by_chr.R \
             2>&1 | tee {log}
-        R_LIBS_USER={R_LIBS} {RSCRIPT} scripts/06c_dmrcaller_combine_chr.R \
+        R_LIBS_USER={R_LIBS} {RSCRIPT} scripts/06b_dmrcaller_combine_chr.R \
             2>&1 | tee -a {log}
         """
 
@@ -354,7 +368,7 @@ rule dmr_annotate:
         """
         R_LIBS_USER={R_LIBS} {RSCRIPT} scripts/07_dmr_annotate.R \
             2>&1 | tee {log}
-        R_LIBS_USER={R_LIBS} {RSCRIPT} scripts/09_top10_by_methylation_v2.R \
+        R_LIBS_USER={R_LIBS} {RSCRIPT} scripts/09_top10_dmrs.R \
             2>&1 | tee -a {log}
         """
 
@@ -367,9 +381,7 @@ rule dmr_qc:
     input:
         expand("results/dmr/dmr_{contrast}.rds", contrast=CONTRASTS),
     output:
-        "results/dmr_qc/sample_PCA.pdf",
         "results/dmr_qc/sample_correlation_heatmap.pdf",
-        "results/dmr_qc/permutation_null_distribution.pdf",
         "results/dmr_qc/DMR_size_distribution.pdf",
         "results/dmr_qc/CpG_island_overlap.pdf",
     log:
@@ -426,5 +438,186 @@ rule smn_locus_plots:
     shell:
         """
         R_LIBS_USER={R_LIBS} {RSCRIPT} scripts/05_smn2_locus_final.R \
+            2>&1 | tee {log}
+        """
+
+rule dmr_plots:
+    # Per-chromosome DMR bar charts, methylation difference histograms,
+    # and locus overlay plots for all 5 contrasts.
+    input:
+        expand("results/dmr/dmr_{contrast}.rds", contrast=CONTRASTS),
+        "results/dmr/meth_pooled_cache.rds",
+    output:
+        expand("results/dmr/plots/{contrast}_DMRs_per_chromosome.pdf", contrast=CONTRASTS),
+        expand("results/dmr/plots/{contrast}_methylation_difference.pdf", contrast=CONTRASTS),
+    log:
+        "logs/dmr_plots.log"
+    resources:
+        mem_mb  = 64000,
+        runtime = 120,
+    shell:
+        """
+        R_LIBS_USER={R_LIBS} {RSCRIPT} scripts/07b_dmr_plots.R \
+            2>&1 | tee {log}
+        """
+
+
+rule dmr_locus_plots:
+    # Annotated locus overlay plots for RNA45SN2, MTA1-DT, MYO1D
+    # across all 5 contrasts. Uses plotLocalMethylationProfile with
+    # exon annotations and DMR highlight boxes.
+    input:
+        expand("results/dmr/dmr_{contrast}.rds", contrast=CONTRASTS),
+        "results/dmr/meth_pooled_cache.rds",
+    output:
+        "results/dmr/plots/annotated/RNA45SN2_all_contrasts.pdf",
+        "results/dmr/plots/annotated/MTA1-DT_all_contrasts.pdf",
+        "results/dmr/plots/annotated/MYO1D_all_contrasts.pdf",
+        "results/dmr/plots/annotated/SMN2_all_contrasts.pdf",
+    log:
+        "logs/dmr_locus_plots.log"
+    resources:
+        mem_mb  = 64000,
+        runtime = 120,
+    shell:
+        """
+        R_LIBS_USER={R_LIBS} {RSCRIPT} scripts/07c_dmr_locus_plots.R \
+            2>&1 | tee {log}
+        """
+
+
+rule lowres_profiles:
+    # Low-resolution genome browser tracks for chr1, chrX, chr5/SMN2.
+    # All 4 conditions overlaid + per-contrast comparisons.
+    # chrX included because ASO shows 620 DMR hotspot (18% of all ASO DMRs).
+    input:
+        "results/dmr/meth_pooled_cache.rds",
+    output:
+        "results/lowres_profiles/lowres_allgroups_chrX_500kb.pdf",
+        "results/lowres_profiles/lowres_allgroups_chr5_SMN2_10kb.pdf",
+        "results/lowres_profiles/lowres_allgroups_chr1_1Mb.pdf",
+    log:
+        "logs/lowres_profiles.log"
+    resources:
+        mem_mb  = 64000,
+        runtime = 120,
+    shell:
+        """
+        R_LIBS_USER={R_LIBS} {RSCRIPT} scripts/15_lowres_methylation_profile.R \
+            2>&1 | tee {log}
+        """
+
+
+rule upset_overlap:
+    # UpSet plots showing DMR overlap across contrasts.
+    # 3-contrast main figure (151 ASO-specific DMRs) +
+    # 5-contrast supplementary figure.
+    input:
+        expand("results/dmr/dmr_{contrast}.rds", contrast=CONTRASTS),
+        "results/dmr/dmr_ASO_specific.rds",
+    output:
+        "results/dmr_overlap/dmr_upset_plot.pdf",
+        "results/dmr_overlap/dmr_upset_plot_5contrasts.pdf",
+        "results/dmr_overlap/dmr_overlap_summary.tsv",
+    log:
+        "logs/upset_overlap.log"
+    resources:
+        mem_mb  = 32000,
+        runtime = 30,
+    shell:
+        """
+        R_LIBS_USER={R_LIBS} {RSCRIPT} scripts/12_upset_dmr_intersections.R \
+            2>&1 | tee {log}
+        """
+
+
+rule h3k9me2_overlap:
+    # H3K9me2 signal enrichment at ASO DMRs vs matched background.
+    # External ChIP-seq data: Marasco et al. 2022 Cell (GSE167762).
+    # Validates kinetic coupling model at SMN2 locus.
+    input:
+        expand("results/dmr/dmr_{contrast}.rds", contrast=CONTRASTS),
+        "results/dmr/dmr_ASO_specific.rds",
+    output:
+        "results/h3k9me2_overlap/h3k9me2_signal_boxplot.pdf",
+        "results/h3k9me2_overlap/h3k9me2_signal_violin.pdf",
+        "results/h3k9me2_overlap/h3k9me2_signal_summary.tsv",
+    log:
+        "logs/h3k9me2_overlap.log"
+    resources:
+        mem_mb  = 32000,
+        runtime = 60,
+    shell:
+        """
+        R_LIBS_USER={R_LIBS} {RSCRIPT} scripts/11_h3k9me2_overlap.R \
+            2>&1 | tee {log}
+        """
+
+
+rule tf_motif_enrichment:
+    # TF motif enrichment on ASO-specific DMRs using monaLisa + JASPAR2020.
+    # Negative result: min padj=0.18 across 746 motifs tested.
+    # Rules out TF binding site disruption as mechanism for neural pathway signal.
+    input:
+        "results/dmr/dmr_ASO_specific.rds",
+    output:
+        "results/tf_motif/motif_enrichment_results.rds",
+        "results/tf_motif/motif_enrichment_volcano.pdf",
+        "results/tf_motif/motif_enrichment_top20_nominal.pdf",
+    log:
+        "logs/tf_motif.log"
+    resources:
+        mem_mb  = 32000,
+        runtime = 60,
+    shell:
+        """
+        R_LIBS_USER={R_LIBS} {RSCRIPT} scripts/16_tf_motif_enrichment.R \
+            2>&1 | tee {log}
+        R_LIBS_USER={R_LIBS} {RSCRIPT} scripts/16b_tf_motif_plots.R \
+            2>&1 | tee -a {log}
+        """
+
+
+rule splice_junction_proximity:
+    # Tests whether ASO-specific DMRs are enriched near splice junctions.
+    # Negative result: median distance 53,879bp vs 28,712bp background
+    # (Wilcoxon p=0.939). Rules out genome-wide kinetic coupling mechanism.
+    input:
+        "results/dmr/dmr_ASO_specific.rds",
+        "data/reference/splice_sites_hg38_protein_coding.bed",
+    output:
+        "results/splice_junction/splice_junction_distance_density.pdf",
+        "results/splice_junction/splice_junction_summary.csv",
+    log:
+        "logs/splice_junction.log"
+    resources:
+        mem_mb  = 16000,
+        runtime = 30,
+    shell:
+        """
+        R_LIBS_USER={R_LIBS} {RSCRIPT} scripts/17_splice_junction_proximity.R \
+            2>&1 | tee {log}
+        """
+
+
+rule msigdb_enrichment:
+    # MSigDB gene set enrichment for all 5 contrasts + ASO-specific DMRs.
+    # Neural, synaptic, chromatin and splicing gene sets tested.
+    # Confirms VPA shows no neural enrichment while ASO shows consistent
+    # neural pathway signal across two independent databases.
+    input:
+        expand("results/dmr/dmr_{contrast}.rds", contrast=CONTRASTS),
+        "results/dmr/dmr_ASO_specific.rds",
+    output:
+        "results/dmr_annotation/msigdb_v2/ASO_specific_msigdb_all_combined.pdf",
+        "results/dmr_annotation/msigdb_v2/ASO_specific_neural_all.tsv",
+    log:
+        "logs/msigdb_enrichment.log"
+    resources:
+        mem_mb  = 32000,
+        runtime = 60,
+    shell:
+        """
+        R_LIBS_USER={R_LIBS} {RSCRIPT} scripts/14_msigdb_enrichment_all.R \
             2>&1 | tee {log}
         """
