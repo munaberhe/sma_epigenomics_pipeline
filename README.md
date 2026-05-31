@@ -1,78 +1,41 @@
 # SMA Epigenomics Pipeline
 
-Whole-genome bisulfite sequencing (WGBS) analysis pipeline investigating genome-wide pleiotropic epigenetic effects of combined nusinersen (ASO1) and valproic acid (VPA) treatment in Spinal Muscular Atrophy.
+A Snakemake-based WGBS analysis pipeline for genome-wide epigenetic profiling of nusinersen (ASO) and valproic acid (VPA) combination treatment in Spinal Muscular Atrophy.
 
-MSc Bioinformatics thesis · Queen Mary University of London · 2026  
-Supervisor: Prof Radu Zabet (Zabet Lab, QMUL)  
+MSc Bioinformatics thesis · Queen Mary University of London · 2026
+Supervisor: Prof Radu Zabet (Zabet Lab, QMUL)
 Collaborators: Prof Alberto Kornblihtt (IFIBYNE-UBA-CONICET), Dr Emilia Haberfeld, Dr Marcos Miretti
 
 ---
 
-## Background
+## Table of Contents
 
-SMA is caused by loss-of-function mutations in SMN1. The SMN2 paralog compensates partially but skips exon 7 in ~90% of transcripts due to a C→T transition at position +6, producing insufficient functional SMN protein. Nusinersen (Spinraza) corrects this splicing defect via antisense oligonucleotide targeting of ISS-N1 in intron 7. Marasco et al. (2022, Cell) showed that nusinersen also deposits the repressive histone mark H3K9me2 at the SMN2 locus via a kinetic coupling mechanism. Valproic acid (VPA), a broad HDAC inhibitor, counteracts this chromatin compaction and combined ASO+VPA treatment outperforms ASO alone in preclinical models.
-
-This pipeline characterises the genome-wide epigenetic consequences of this combination therapy in HEK293T cells, testing whether VPA and ASO act through independent epigenetic mechanisms and whether nusinersen produces off-target methylation changes at neural identity loci.
-
----
-
-## Experimental Design
-
-2x2 factorial WGBS experiment in HEK293T cells, n=3 biological replicates per condition.
-
-| Condition | Replicates | Description |
-|---|---|---|
-| ASO_CTRL | 3 | Nusinersen 100nM (saturating dose) |
-| ASO_VPA | 3 | Nusinersen + VPA (combination treatment) |
-| Scramble_CTRL | 3 | Scramble ASO — baseline control |
-| Scramble_VPA | 3 | VPA only (HDAC inhibitor) |
-
-Five contrasts were analysed to fully characterise the 2x2 factorial design.
-
-| Contrast | DMRs | Key finding |
-|---|---|---|
-| ASO_CTRL vs Scramble_CTRL | 3,423 | Bidirectional, chrX hotspot, neural pathways |
-| Scramble_VPA vs Scramble_CTRL | 598,485 | Near-exclusively hypo, HDAC inhibitor signature |
-| ASO_VPA vs Scramble_CTRL | 554,291 | VPA-dominated, same as VPA alone |
-| ASO_VPA vs ASO_CTRL | 664,202 | VPA effect identical on ASO background |
-| ASO_VPA vs Scramble_VPA | 23,669 | ASO neural signal persists on VPA background |
-
-The parallel VPA profiles in contrasts 2 and 4 confirm that VPA and ASO act through completely independent epigenetic mechanisms.
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Running the Pipeline](#running-the-pipeline)
+- [Key Parameters](#key-parameters)
+- [Project Structure](#project-structure)
+- [References](#references)
 
 ---
 
-## Pipeline Structure
+## Features
 
-    Raw FASTQ
-        |
-        v  Trim Galore (Q20, min 20bp, FastQC)
-    Trimmed FASTQ
-        |
-        |---> Bismark + Bowtie2 -> unmasked hg38 (genome-wide DMR calling)
-        |---> Bismark + Bowtie2 -> SMN1-masked hg38 (SMN2 locus analysis)
-               chr5:70,924,941-70,953,015 replaced with Ns
-        |
-        v  deduplicate_bismark + bismark_methylation_extractor
-    CpG reports (per sample, genome-wide)
-        |
-        v  Split by chromosome (CpG context only)
-    Per-chromosome CpG reports (12 samples x 24 chromosomes)
-        |
-        v  DMRcaller per-chromosome (SLURM array)
-        v  Combine chromosomes
-    Genome-wide DMRs (5 contrasts, RDS + BED format)
-        |
-        |---> ChIPseeker annotation + GO/KEGG (clusterProfiler)
-        |---> MSigDB enrichment (neural/synaptic/chromatin/splicing)
-        |---> TF motif enrichment (monaLisa + JASPAR2020) -- negative result
-        |---> Splice junction proximity analysis -- negative result
-        |---> H3K9me2 overlap (Marasco et al. 2022, GSE167762)
-        |---> UpSet overlap analysis (151 ASO-specific DMRs identified)
-        |---> Low-resolution genome browser tracks (chr1, chrX, chr5/SMN2)
-
-**SMN1 masking:** SMN1 and SMN2 share ~99% sequence identity causing paralog read misassignment. The SMN1 locus (chr5:70,924,941-70,953,015, 28,075 bp) is hard-masked with Ns so reads align unambiguously to SMN2.
-
-**Per-chromosome DMR calling:** Genome-wide calling was computationally intractable. Attempts with up to 98GB RAM ran for 18-27 hours without completing the iterative merge step (SLURM jobs 10504170, 10591016). Per-chromosome parallelisation resolves this by giving DMRcaller a smaller merge problem per job.
+- **Alignment** — paired-end WGBS alignment to hg38 using Bismark and Bowtie2, with PCR deduplication and CpG report generation
+- **SMN1 masking** — hard-masks the SMN1 paralog locus (chr5:70,924,941-70,953,015) with Ns before alignment so reads map unambiguously to SMN2
+- **DMR calling** — per-chromosome parallelisation via SLURM array jobs using DMRcaller with locked parameters confirmed with supervisor; results combined into genome-wide GRanges objects
+- **Five-contrast 2x2 factorial design** — ASO effect, VPA effect, combination vs baseline, and two cross-background contrasts that test whether the two drugs act independently
+- **Genomic annotation** — ChIPseeker annotation of high-confidence DMRs with GO biological process and KEGG pathway enrichment via clusterProfiler, analysed separately for hyper and hypo DMRs
+- **MSigDB enrichment** — independent gene set enrichment across neural, synaptic, chromatin and splicing gene sets for all five contrasts, providing a second orthogonal database for pathway validation
+- **TF motif enrichment** — monaLisa enrichment of JASPAR2020 vertebrate TF motifs in ASO-specific DMR sequences vs matched background
+- **Splice junction proximity** — tests whether ASO-specific DMRs are enriched near exon-intron boundaries relative to matched random background
+- **H3K9me2 validation** — overlaps DMR loci with published HEK293T H3K9me2 ChIP-seq bigWig signal (Marasco et al. 2022, GSE167762) to validate kinetic coupling model at SMN2
+- **UpSet overlap analysis** — identifies DMRs shared across contrasts and isolates ASO-specific high-confidence DMR set
+- **Low-resolution genome browser tracks** — sliding-window methylation profiles for chr1, chrX and chr5/SMN2 zoom showing all four conditions
+- **QC suite** — 12-sample PCA from per-replicate chr1 CpG methylation, M-bias plots, duplication rates, bisulfite conversion efficiency, sample correlation heatmap, coverage retention curves
 
 ---
 
@@ -99,27 +62,19 @@ The parallel VPA profiles in contrasts 2 and 4 confirm that VPA and ASO act thro
 
 ---
 
-## DMR Calling Parameters
+## Prerequisites
 
-All parameters confirmed with Prof Radu Zabet, 5 May 2026.
-
-| Parameter | Value | Rationale |
-|---|---|---|
-| method | bins | Fixed-width windows, robust at ~27x pooled coverage |
-| binSize | 300 bp | Benchmarked against chr1/chr6/chr13 permutation null |
-| minProportionDifference | 0.20 | Filters biologically trivial changes |
-| pValueThreshold | 0.01 | Standard genome-wide threshold |
-| minCytosinesCount | 4 | Prevents single-CpG noise calls |
-| minReadsPerCytosine | 4 | Confirmed from benchmark scripts |
-| minGap | 300 bp | One bin width -- prevents iterative merge hang on VPA contrasts |
-| test | score | Rao score test, appropriate at ~27x pooled coverage |
-| context | CG | CpG only -- CHG/CHH near-zero in human somatic cells |
-
-regionType convention: gain = hypomethylated (proportion1 < proportion2); loss = hypermethylated. This is counter-intuitive and opposite to some published conventions. All scripts and figures use this convention consistently.
+- Apocrita HPC account (QMUL) or equivalent SLURM cluster
+- conda (docs.conda.io)
+- R 4.5.1+ available via module or conda
+- ~3TB scratch storage for intermediate files
+- ~500GB storage for final outputs
 
 ---
 
 ## Installation
+
+Clone the repository and create the conda environment:
 
     git clone https://github.com/munaberhe/sma_epigenomics_pipeline.git
     cd sma_epigenomics_pipeline
@@ -128,12 +83,13 @@ regionType convention: gain = hypomethylated (proportion1 < proportion2); loss =
 
 Install R packages:
 
+    Rscript -e "
     BiocManager::install(c(
-      "DMRcaller", "GenomicRanges", "ChIPseeker", "clusterProfiler",
-      "org.Hs.eg.db", "TxDb.Hsapiens.UCSC.hg38.knownGene",
-      "monaLisa", "SummarizedExperiment", "txdbmaker",
-      "msigdbr", "rtracklayer", "UpSetR", "patchwork", "ggplot2"
-    ))
+      'DMRcaller', 'GenomicRanges', 'ChIPseeker', 'clusterProfiler',
+      'org.Hs.eg.db', 'TxDb.Hsapiens.UCSC.hg38.knownGene',
+      'monaLisa', 'SummarizedExperiment', 'txdbmaker',
+      'msigdbr', 'rtracklayer', 'UpSetR', 'patchwork', 'ggplot2'
+    ))"
 
 Download hg38 and build the SMN1-masked Bismark index:
 
@@ -143,43 +99,58 @@ Download hg38 and build the SMN1-masked Bismark index:
 
 ---
 
+## Configuration
+
+Edit configs/config.yaml to set sample names, paths and SLURM resource profiles.
+
+Key environment variables used by the Snakefile:
+
+| Variable | Description |
+|---|---|
+| RSCRIPT | Path to Rscript binary |
+| R_LIBS | Path to R library directory |
+
+These are set automatically from the conda environment. Override in configs/config.yaml if needed.
+
+---
+
 ## Running the Pipeline
 
 Full pipeline via Snakemake:
 
     snakemake --profile configs/slurm_profile --jobs 12
 
-Dry run:
+Dry run to check the DAG without executing:
 
     snakemake -n
 
-Step-by-step:
+Step-by-step execution:
 
-    # Alignment
+    # 1. Alignment (unmasked and masked)
     sbatch scripts/02_bismark_align.sh
     sbatch scripts/03_dedup_and_extract.sh
     sbatch scripts/04_split_by_chr.sh
 
-    # DMR calling
+    # 2. DMR calling
     bash scripts/submit_dmr_by_chr.sh
     Rscript scripts/06b_dmrcaller_combine_chr.R
 
-    # SMN2 locus
+    # 3. SMN2 locus analysis
     Rscript scripts/05_smn2_locus_final.R
     Rscript scripts/05b_smn_locus_unmasked.R
 
-    # Annotation and plots
+    # 4. Annotation and enrichment
     Rscript scripts/07_dmr_annotate.R
     Rscript scripts/07b_dmr_plots.R
     Rscript scripts/07c_dmr_locus_plots.R
     Rscript scripts/09_top10_dmrs.R
 
-    # QC
+    # 5. QC
     Rscript scripts/08_pca_chr1.R
     Rscript scripts/08b_additional_qc.R
     Rscript scripts/10_coverage_qc.R
 
-    # Downstream analyses
+    # 6. Downstream analyses
     Rscript scripts/11_h3k9me2_overlap.R
     Rscript scripts/12_upset_dmr_intersections.R
     Rscript scripts/14_msigdb_enrichment_all.R
@@ -190,63 +161,72 @@ Step-by-step:
 
 ---
 
-## Repository Layout
+## Key Parameters
+
+DMR calling parameters confirmed with Prof Radu Zabet, 5 May 2026.
+
+| Parameter | Value | Rationale |
+|---|---|---|
+| method | bins | Fixed-width windows, robust at pooled coverage |
+| binSize | 300 bp | Benchmarked against permutation null on chr1/chr6/chr13 |
+| minProportionDifference | 0.20 | Filters biologically trivial changes |
+| pValueThreshold | 0.01 | Standard genome-wide threshold |
+| minCytosinesCount | 4 | Prevents single-CpG noise calls |
+| minReadsPerCytosine | 4 | Confirmed from benchmark scripts |
+| minGap | 300 bp | One bin width -- prevents iterative merge hang on dense VPA contrasts |
+| test | score | Rao score test, appropriate at ~27x pooled coverage |
+| context | CG | CpG only -- CHG/CHH near-zero in human somatic cells |
+
+regionType convention: gain = hypomethylated (proportion1 < proportion2); loss = hypermethylated. This is counter-intuitive -- documented explicitly to prevent misinterpretation.
+
+Per-chromosome DMR calling was adopted after genome-wide calling proved computationally intractable. Attempts with up to 98GB RAM ran for 18-27 hours without completing the iterative merge step (SLURM jobs 10504170, 10591016).
+
+---
+
+## Project Structure
 
     sma_epigenomics_pipeline/
-    ├── Snakefile                            Full pipeline DAG
-    ├── README.md
-    ├── environment.yml                      Conda environment specification
-    ├── configs/
-    │   └── config.yaml                      Pipeline configuration
-    ├── scripts/
-    │   ├── 01_mask_and_index.sh             Mask SMN1 locus, build Bismark index
-    │   ├── 02_bismark_align.sh              WGBS alignment (SLURM array, 12 samples)
-    │   ├── 03_dedup_and_extract.sh          PCR deduplication + methylation extraction
-    │   ├── 04_split_by_chr.sh               Split CX reports by chromosome (CpG only)
-    │   ├── 05_smn2_locus_final.R            SMN2 locus methylation plots (masked)
-    │   ├── 05b_smn_locus_unmasked.R         SMN2 locus plots (unmasked, for comparison)
-    │   ├── 06_dmrcaller_by_chr.R            Per-chromosome DMR calling
-    │   ├── 06b_dmrcaller_combine_chr.R      Combine per-chromosome results
-    │   ├── 07_dmr_annotate.R                ChIPseeker annotation + GO/KEGG enrichment
-    │   ├── 07b_dmr_plots.R                  Per-chr bar charts + methylation diff histograms
-    │   ├── 07c_dmr_locus_plots.R            Annotated locus overlay plots
-    │   ├── 08_pca_chr1.R                    12-sample PCA from chr1 CpG methylation
-    │   ├── 08b_additional_qc.R              M-bias, duplication rates, conversion efficiency
-    │   ├── 09_top10_dmrs.R                  Top 10 hypo DMRs per contrast
-    │   ├── 10_coverage_qc.R                 Coverage retention curves
-    │   ├── 11_h3k9me2_overlap.R             H3K9me2 ChIP-seq signal at DMR loci
-    │   ├── 12_upset_dmr_intersections.R     UpSet plots (3-contrast + 5-contrast)
-    │   ├── 14_msigdb_enrichment_all.R       MSigDB enrichment all 5 contrasts
-    │   ├── 15_lowres_methylation_profile.R  Low-res browser tracks (chr1/chrX/chr5)
-    │   ├── 16_tf_motif_enrichment.R         TF motif enrichment (monaLisa, negative result)
-    │   ├── 16b_tf_motif_plots.R             TF motif result visualisation
-    │   ├── 17_splice_junction_proximity.R   Splice junction proximity test (negative result)
-    │   ├── submit_dmr_by_chr.sh             Submit per-chromosome DMR SLURM array
-    │   ├── submit_smn1_masked_pipeline.sh   Submit masked alignment pipeline
-    │   └── archive/                         Superseded scripts retained for reference
-    ├── data/
-    │   ├── reference/                       hg38 FASTA + Bismark genome index
-    │   └── reference_smn1_masked/           SMN1-masked reference + Bismark index
-    ├── results/                             All pipeline outputs (gitignored)
-    └── logs/                                SLURM and tool logs (gitignored)
+    |-- Snakefile                            Full pipeline DAG
+    |-- README.md
+    |-- environment.yml                      Conda environment
+    |-- configs/
+    |   |-- config.yaml                      Pipeline configuration
+    |   `-- slurm_profile/                   Snakemake SLURM profile
+    |-- scripts/
+    |   |-- 01_mask_and_index.sh             Mask SMN1 locus, build Bismark index
+    |   |-- 02_bismark_align.sh              WGBS alignment (SLURM array)
+    |   |-- 03_dedup_and_extract.sh          Deduplication + methylation extraction
+    |   |-- 04_split_by_chr.sh               Split CX reports by chromosome
+    |   |-- 05_smn2_locus_final.R            SMN2 locus methylation plots (masked)
+    |   |-- 05b_smn_locus_unmasked.R         SMN2 locus plots (unmasked)
+    |   |-- 06_dmrcaller_by_chr.R            Per-chromosome DMR calling
+    |   |-- 06b_dmrcaller_combine_chr.R      Combine per-chromosome results
+    |   |-- 07_dmr_annotate.R                ChIPseeker annotation + GO/KEGG
+    |   |-- 07b_dmr_plots.R                  Per-chr bar charts + meth diff histograms
+    |   |-- 07c_dmr_locus_plots.R            Annotated locus overlay plots
+    |   |-- 08_pca_chr1.R                    12-sample PCA from chr1 CpG methylation
+    |   |-- 08b_additional_qc.R              M-bias, duplication rates, conversion QC
+    |   |-- 09_top10_dmrs.R                  Top 10 hypo DMRs per contrast
+    |   |-- 10_coverage_qc.R                 Coverage retention curves
+    |   |-- 11_h3k9me2_overlap.R             H3K9me2 signal enrichment at DMR loci
+    |   |-- 12_upset_dmr_intersections.R     UpSet overlap plots
+    |   |-- 14_msigdb_enrichment_all.R       MSigDB gene set enrichment all contrasts
+    |   |-- 15_lowres_methylation_profile.R  Low-res browser tracks
+    |   |-- 16_tf_motif_enrichment.R         TF motif enrichment (monaLisa)
+    |   |-- 16b_tf_motif_plots.R             TF motif result plots
+    |   |-- 17_splice_junction_proximity.R   Splice junction proximity test
+    |   |-- submit_dmr_by_chr.sh             Submit DMR SLURM array
+    |   |-- submit_smn1_masked_pipeline.sh   Submit masked alignment pipeline
+    |   `-- archive/                         Superseded scripts retained for reference
+    |-- data/
+    |   |-- reference/                       hg38 FASTA + Bismark index
+    |   `-- reference_smn1_masked/           SMN1-masked reference + index
+    |-- results/                             Pipeline outputs (gitignored)
+    `-- logs/                                SLURM logs (gitignored)
 
 ---
 
-## Key Results
-
-- 3,423 ASO-specific DMRs with bidirectional methylation changes (66% hyper, 34% hypo)
-- 598,485 VPA DMRs -- near-exclusively hypomethylated, HDAC inhibitor signature
-- 151 high-confidence ASO-specific DMRs converging on axonogenesis, ISL1, ROBO2
-- chrX hotspot: 620 DMRs (18% of all ASO DMRs), disproportionate to chromosome size
-- SMN2: 0 DMRs called (delta-meth 1.4%, below threshold) but H3K9me2 2.2-fold increase confirmed
-- VPA and ASO act independently: ASO_VPA vs ASO_CTRL GO terms identical to VPA alone
-- TF motif enrichment: negative (min padj=0.18, 746 motifs) -- no TF binding site disruption
-- Splice junction proximity: negative (p=0.939) -- not genome-wide kinetic coupling
-- MSigDB validation: neural pathway enrichment confirmed by second independent database
-
----
-
-## Key References
+## References
 
 - Marasco et al. (2022) Cell 185:2057-2070 -- nusinersen kinetic coupling + H3K9me2 at SMN2
 - Catoni et al. (2018) Nucleic Acids Research 46:e114 -- DMRcaller
@@ -255,4 +235,3 @@ Step-by-step:
 - Wu et al. (2021) iMeta 1:e5 -- clusterProfiler 4.0
 - Finkel et al. (2017) NEJM 377:1723-1732 -- ENDEAR trial nusinersen
 - Gottlicher et al. (2001) EMBO J 20:6969-6978 -- VPA as HDAC inhibitor
-- Brichta et al. (2003) Hum Mol Genet 12:2481-2489 -- VPA increases SMN2 expression
