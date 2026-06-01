@@ -1,62 +1,41 @@
 # Changelog
 
-All notable changes to the SMA Epigenomics Pipeline are documented here.
+## 2026-06-01
+- Add DSS replicate-level validation (20_dss_replicate_testing.R)
+- Add SMN2 H3K27ac enhancer analysis (19_smn2_h3k27ac_enhancer.R, GSE246399)
+- Add sensitive local DMR calling at SMN2 (22_smn2_local_dmr_sensitive.R)
+- Fix UpSet plot black rectangle (mb.ratio, text_scale adjustments)
+- Fix Fig4 H3K9me2 boxplot (load from saved RDS, proper panel B)
+- Add chr13 hotspot annotation and intron 6/7 H3K27ac check
 
----
+## 2026-05-31
+- Add MSigDB enrichment all contrasts (14_msigdb_enrichment_all.R)
+- Fix Fig5 negative results colour coding
+- Add H3K9me2 overlap script saving plot_df.rds for thesis figure
+- Regenerate thesis combined figures (18_thesis_combined_figures.R)
 
-## [0.5.0] - 2026-03-25
+## 2026-05-28
+- Complete SMN1 masked realignment, all 12 samples
+- Add SMN2 locus plots using masked chr5 CX reports
+- Fix exon labelling: E2→E2a/E2b, E7 in red (Alberto Kornblihtt correction)
+- Add Snakefile rules for all 5 contrasts
 
-### Added
-- Singularity/Apptainer container built successfully (sma_pipeline.sif, 1.2G)
-- Container includes full conda environment with all bioinformatics tools
+## 2026-05-15
+- Lock DMR parameters: binSize=300, pVal=0.01, minDiff=0.20, minCyto=4
+- Per-chromosome approach adopted after genome-wide attempts timed out
+  (SLURM jobs 10504170, 10591016 — 27h and 18h at 98GB, no completion)
+- Complete DMR calling for all 5 contrasts across 24 chromosomes
 
----
+## 2026-05-05
+- Initial meeting with Alberto Kornblihtt, Emilia Haberfeld, Marcos Miretti
+- SMN1 masking approach agreed (vs merge alternative)
+- DMR parameters reviewed and confirmed
 
-## [0.4.0] - 2026-03-25
+## 2026-04-01
+- Initial WGBS QC and preliminary alignment
+- Coverage analysis: ~9x per replicate, 53.8% CpGs at ≥10x pooled
+- Bismark alignment rate ~70-75%
 
-### Added
-- Singularity/Apptainer container definition (Singularity.def)
-- GitHub Actions CI workflow with automated Snakemake dry-run validation
-- Bismark deduplication rule added to Snakefile
-- R Markdown analysis report template (analysis_report.Rmd)
-- environment.yml for reproducible conda environment setup
-
-### Fixed
-- GTF path in config.yaml corrected to hg38.ensGene.gtf
-- Bismark SLURM script updated to activate conda environment
-
-### Validated
-- STAR alignment confirmed working on Apocrita (2.3G BAM output)
-- Bismark alignment confirmed working on Apocrita (69.2% CpG methylation)
-
----
-
-## [0.3.0] - 2026-03-24
-
-### Added
-- Full R analysis scripts: deseq2.R, dmrcaller.R, integrate.R
-- Snakemake rules for DESeq2, DMRcaller, featureCounts, Bismark extraction and DMR-DEG integration
-- Test alignment scripts for STAR and Bismark validation
-- README.md with full installation, usage and pipeline documentation
-
----
-
-## [0.2.0] - 2026-03-10
-
-### Added
-- hg38 reference genome download script
-- STAR genome index build script
-- Bismark bisulfite genome index build script
-- Test data download and subsetting scripts
-
----
-
-## [0.1.0] - 2026-03-10
-
-### Added
-- Initial project structure and folder layout
-- Conda environment: sma_epigenomics_pipeline (Python 3.11)
-- Full bioinformatics tool stack installed on Apocrita HPC
-- Snakefile covering QC, trimming and alignment stages
-- configs/config.yaml with pipeline parameters
-- .gitignore configured for large reference and data files
+## 2026-03-10
+- Project start, conda environment set up on Apocrita HPC
+- hg38 GRCh38 Ensembl 109 reference downloaded
