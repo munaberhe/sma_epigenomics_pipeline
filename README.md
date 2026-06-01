@@ -166,7 +166,7 @@ Rscript scripts/17_splice_junction_proximity.R
 
 ## Key Parameters
 
-Parameters confirmed with Prof Radu Zabet, 5 May 2026. Benchmarked on chr1/chr6/chr13 permutation null distributions.
+Parameters used in this study, benchmarked against permutation null distributions on chr1, chr6 and chr13. For other datasets, binSize and minProportionDifference should be re-benchmarked using the permutation approach in scripts/archive/.
 
 | Parameter | Value | Rationale |
 |---|---|---|
