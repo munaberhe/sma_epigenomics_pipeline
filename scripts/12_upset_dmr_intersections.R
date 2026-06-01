@@ -38,7 +38,7 @@ df <- make_membership(
 # UpSetR needs pdf() opened before calling upset()
 # onefile=FALSE prevents the blank first page
 pdf(file.path(OUT_DIR, "dmr_upset_plot.pdf"),
-    width=10, height=7.5, onefile=FALSE)
+    width=12, height=7, onefile=FALSE)
 upset(
   df,
   sets           = c("Scramble_VPA", "ASO_VPA", "ASO_CTRL"),
@@ -46,20 +46,18 @@ upset(
   order.by       = "freq",
   sets.bar.color = c("#E67E22", "#C0392B", "#2980B9"),
   main.bar.color = "#2C3E50",
-  text.scale     = 1.4,
-  mb.ratio       = c(0.6, 0.4),
+  text.scale     = 1.3,
+  mb.ratio       = c(0.55, 0.45),
   mainbar.y.label = "DMR intersections (n)",
-  sets.x.label    = "DMRs per contrast"
+  sets.x.label    = "DMRs per contrast",
+  number.angles  = 0,
+  point.size     = 3,
+  line.size      = 1
 )
 grid::grid.text(
-  "DMR overlap across three contrasts (high-confidence, cytosinesCount >= 6)",
-  x=0.65, y=0.985,
-  gp=grid::gpar(fontsize=12, fontface="bold", col="#1A2A3A")
-)
-grid::grid.text(
-  "ASO-associated DMRs vs VPA and combined treatment — Muna Berhe, QMUL 2026",
-  x=0.65, y=0.965,
-  gp=grid::gpar(fontsize=9, col="#6B7C93")
+  "DMR overlap across three contrasts (cytosinesCount >= 6)",
+  x=0.65, y=0.97,
+  gp=grid::gpar(fontsize=11, fontface="bold", col="#1A2A3A")
 )
 dev.off()
 

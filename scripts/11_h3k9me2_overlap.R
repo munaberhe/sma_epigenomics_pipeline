@@ -131,6 +131,7 @@ plot_df <- rbind(
   data.frame(signal=sig_specific$mean_CTR,  group="ASO DMRs",   set="ASO-specific DMRs (n=114)"),
   data.frame(signal=sig_bg_spec$mean_CTR,   group="Background", set="ASO-specific DMRs (n=114)")
 )
+saveRDS(plot_df, file.path(OUT_DIR, "h3k9me2_plot_df.rds"))
 plot_df$group <- factor(plot_df$group, levels=c("Background","ASO DMRs"))
 
 p1 <- ggplot(plot_df, aes(x=group, y=signal, fill=group)) +
