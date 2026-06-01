@@ -166,7 +166,19 @@ Rscript scripts/17_splice_junction_proximity.R
 
 ## Key Parameters
 
-Parameters used in this study, benchmarked against permutation null distributions on chr1, chr6 and chr13. For other datasets, binSize and minProportionDifference should be re-benchmarked using the permutation approach in scripts/archive/.
+Parameters used in this study. binSize was selected by benchmarking six window sizes (100, 200, 300, 500, 1000, 2000bp) against two null models on chr1.
+
+Null model 1 - read-count permutation: shuffles readsM and readsN by a random position index applied identically to both conditions. Preserves coverage structure but destroys spatial methylation signal. 20 permutations per window size (scripts/archive/benchmark_permutations.R).
+
+Null model 2 - label swap: swaps ASO_VPA and ASO_CTRL conditions entirely. Most conservative -- preserves spatial structure, coverage and methylation levels. Tests whether the method detects directionality rather than noise (scripts/archive/parameter_benchmark_archie.R).
+
+The optimal binSize maximises the signal-to-noise ratio across both null models:
+
+    z = (D_obs - mu_null) / sigma_null
+
+where D_obs is the observed DMR count, mu_null and sigma_null are the mean and SD of DMR counts across permutations. Both null models agreed on 300bp as optimal (scripts/archive/benchmark_compare.R).
+
+For other datasets, re-run both benchmarks before locking parameters.
 
 | Parameter | Value | Rationale |
 |---|---|---|
