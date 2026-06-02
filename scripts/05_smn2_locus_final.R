@@ -1,27 +1,36 @@
-# =============================================================================
-# 05_smn2_locus_final.R
-# SMN locus profile — masked and unmasked, plotLocalMethylationProfile
-# =============================================================================
+.libPaths(c("~/R/library", .libPaths()))
 suppressPackageStartupMessages({
   library(DMRcaller)
   library(GenomicRanges)
+  library(ggplot2)
+  library(patchwork)
 })
-.libPaths(c("~/R/library", .libPaths()))
+
 setwd("/data/scratch/bt25018/sma_epigenomics_pipeline")
 
+# SMN2 locus methylation profile — masked and unmasked alignments
+# Uses DMRcaller's plotLocalMethylationProfile for the detailed view
+# and computeMethylationProfile for the smoothed lowres overview.
+# Replicates are pooled per condition before plotting.
+
+# paths
 CHR5_MASKED   <- "results/alignments_smn1_masked/chr5_cx"
 BY_CHR_UNMASK <- "results/alignments/bs/by_chr"
 OUT_DIR       <- "results/smn2_locus_final"
 dir.create(OUT_DIR, recursive=TRUE, showWarnings=FALSE)
 
-FLANK    <- 2000
-WIN_SIZE <- 300
+# parameters
+FLANK      <- 2000   # bp either side of the locus for plotting
+WIN_SIZE   <- 300    # bin size for detailed profile
+WIN_LOWRES <- 500    # bin size for smoothed overview
 
+# SMN1 and SMN2 coordinates on GRCh38
 LOCI <- list(
   SMN1 = list(chr="chr5", start=70924941, end=70953015, strand="+"),
   SMN2 = list(chr="chr5", start=70049638, end=70078522, strand="+")
 )
 
+# exon coordinates — exon 7 is the ASO target
 EXONS <- list(
   SMN1 = data.frame(
     exon  = c("E1","E2a","E2b","E3","E4","E5","E6","E7","E8"),
@@ -29,7 +38,7 @@ EXONS <- list(
               70944627,70946033,70951913,70952411),
     end   = c(70925158,70938878,70941476,70942526,70942838,
               70944722,70946143,70951966,70952984),
-    is_target=c(F,F,F,F,F,F,F,T,F)
+    is_target = c(F,F,F,F,F,F,F,T,F)
   ),
   SMN2 = data.frame(
     exon  = c("E1","E2a","E2b","E3","E4","E5","E6","E7","E8"),
@@ -37,10 +46,11 @@ EXONS <- list(
               70069235,70070641,70076521,70077019),
     end   = c(70049766,70063486,70066084,70067134,70067446,
               70069330,70070751,70076574,70077592),
-    is_target=c(F,F,F,F,F,F,F,T,F)
+    is_target = c(F,F,F,F,F,F,F,T,F)
   )
 )
 
+# pairwise comparisons to plot
 COMPARISONS <- list(
   list(name="ASO_vs_Scramble_CTRL",
        cond1="ASO_CTRL", cond2="Scramble_CTRL",
@@ -55,29 +65,38 @@ COMPARISONS <- list(
 
 NEEDED <- unique(unlist(lapply(COMPARISONS, function(x) c(x$cond1, x$cond2))))
 
-# ── GFF ───────────────────────────────────────────────────────────────────────
+COND_COLOURS <- c(
+  ASO_CTRL      = "#1B4F8A",
+  Scramble_CTRL = "#6B7280",
+  ASO_VPA       = "#B2182B",
+  Scramble_VPA  = "#D97706"
+)
+
+# build a GRanges with gene and exon features for the plot track
 build_gff <- function() {
   rows <- list()
   for (ln in names(LOCI)) {
     l <- LOCI[[ln]]
-    rows[[length(rows)+1]] <- data.frame(chr=l$chr, start=l$start, end=l$end,
+    rows[[length(rows)+1]] <- data.frame(
+      chr=l$chr, start=l$start, end=l$end,
       strand=l$strand, type="gene", name=ln, stringsAsFactors=FALSE)
     ex <- EXONS[[ln]]
     for (i in seq_len(nrow(ex)))
-      rows[[length(rows)+1]] <- data.frame(chr=l$chr, start=ex$start[i],
-        end=ex$end[i], strand=l$strand, type="exon",
+      rows[[length(rows)+1]] <- data.frame(
+        chr=l$chr, start=ex$start[i], end=ex$end[i],
+        strand=l$strand, type="exon",
         name=sprintf("%s_%s", ln, ex$exon[i]), stringsAsFactors=FALSE)
   }
   df <- do.call(rbind, rows)
-  GRanges(seqnames=df$chr, ranges=IRanges(df$start,df$end),
+  GRanges(seqnames=df$chr, ranges=IRanges(df$start, df$end),
           strand=df$strand, type=df$type, name=df$name)
 }
 GEs <- build_gff()
 
-# ── Readers ───────────────────────────────────────────────────────────────────
-# Key fix: filter to CG context BEFORE pooling
+# read and pool 3 replicates from the SMN1-masked alignment
+# filters to CpG context before pooling
 read_masked_cpg <- function(condition) {
-  message("  Masked: ", condition)
+  message("  masked: ", condition)
   grs <- lapply(1:3, function(r) {
     path <- file.path(CHR5_MASKED,
                       paste0(condition,"_",r,"_chr5.CX_report.txt"))
@@ -85,7 +104,7 @@ read_masked_cpg <- function(condition) {
       col.names=c("chr","pos","strand","countM","countU","context","tri"),
       colClasses=c("character","integer","character","integer",
                    "integer","character","character"))
-    d <- d[d$context=="CG",]  # CpG only BEFORE pooling
+    d <- d[d$context=="CG", ]
     GRanges(seqnames=d$chr, ranges=IRanges(d$pos,d$pos), strand=d$strand,
             readsM=d$countM, readsN=d$countM+d$countU,
             context=d$context, trinucleotide_context=d$tri)
@@ -93,8 +112,9 @@ read_masked_cpg <- function(condition) {
   poolMethylationDatasets(GRangesList(grs))
 }
 
+# same but from the original unmasked alignment
 read_unmasked_cpg <- function(condition) {
-  message("  Unmasked: ", condition)
+  message("  unmasked: ", condition)
   files <- file.path(BY_CHR_UNMASK,
                      sprintf("%s_%d_chr5.CpG_report.txt.gz", condition, 1:3))
   files <- files[file.exists(files)]
@@ -110,7 +130,7 @@ read_unmasked_cpg <- function(condition) {
   poolMethylationDatasets(GRangesList(grs))
 }
 
-# ── Plot function ─────────────────────────────────────────────────────────────
+# detailed locus plot using DMRcaller's plotLocalMethylationProfile
 plot_one <- function(pooled, comp, locus_name) {
   locus  <- LOCI[[locus_name]]
   region <- GRanges(seqnames=locus$chr,
@@ -128,6 +148,7 @@ plot_one <- function(pooled, comp, locus_name) {
     plotMeanLines    = TRUE,
     plotPoints       = TRUE
   )
+  # add exon labels below the gene track
   ex <- EXONS[[locus_name]]
   for (i in seq_len(nrow(ex))) {
     mtext(ex$exon[i], side=1, at=(ex$start[i]+ex$end[i])/2,
@@ -135,32 +156,37 @@ plot_one <- function(pooled, comp, locus_name) {
           col=if(ex$is_target[i]) "red" else "black",
           font=if(ex$is_target[i]) 2 else 1)
   }
-  # Gene name label on the left of the gene line
   usr <- par("usr")
-  text(usr[1], usr[3] + (usr[4]-usr[3])*0.05, labels=locus_name,
-       cex=0.8, font=2, col="black", adj=c(0, 0.5))
+  text(usr[1], usr[3] + (usr[4]-usr[3])*0.05,
+       labels=locus_name, cex=0.8, font=2, adj=c(0,0.5))
 }
-# ── Generate plots ────────────────────────────────────────────────────────────
+
+# generate per-comparison PDFs for masked and unmasked
 for (alignment in c("masked","unmasked")) {
-  message("\n=== ", toupper(alignment), " ===")
+  message("\n", alignment, " alignment")
   reader <- if(alignment=="masked") read_masked_cpg else read_unmasked_cpg
   pooled <- lapply(NEEDED, reader)
   names(pooled) <- NEEDED
 
   for (ct in COMPARISONS) {
     fname <- sprintf("SMN_locus_%s_%s.pdf", alignment, ct$name)
-    message("  Plotting: ", fname)
+    message("  plotting: ", fname)
     pdf(file.path(OUT_DIR, fname), width=11, height=8.5, bg="white")
-    par(mfrow=c(2,1), mar=c(5,4,3,1)+0.1, cex=0.9, bg="white", col.axis="black", col.lab="black", col.main="black", fg="black")
+    par(mfrow=c(2,1), mar=c(5,4,3,1)+0.1, cex=0.9,
+        bg="white", col.axis="black", col.lab="black",
+        col.main="black", fg="black")
     plot_one(pooled, ct, "SMN1")
     plot_one(pooled, ct, "SMN2")
     dev.off()
   }
 
+  # combined PDF with all comparisons
   fname_all <- sprintf("SMN_locus_%s_all_comparisons.pdf", alignment)
-  message("  Plotting combined: ", fname_all)
+  message("  plotting combined: ", fname_all)
   pdf(file.path(OUT_DIR, fname_all), width=16, height=14, bg="white")
-  par(mfrow=c(3,2), mar=c(5,4,3,1)+0.1, cex=0.7, bg="white", col.axis="black", col.lab="black", col.main="black", fg="black")
+  par(mfrow=c(3,2), mar=c(5,4,3,1)+0.1, cex=0.7,
+      bg="white", col.axis="black", col.lab="black",
+      col.main="black", fg="black")
   for (ct in COMPARISONS) {
     plot_one(pooled, ct, "SMN1")
     plot_one(pooled, ct, "SMN2")
@@ -168,19 +194,18 @@ for (alignment in c("masked","unmasked")) {
   dev.off()
 }
 
-# ── Weighted means (masked, CpG only) ────────────────────────────────────────
-message("\n=== Masked weighted means (CpG only) ===")
+# weighted mean methylation table for masked data
+message("\nweighted means (masked, CpG only)")
 masked_pooled <- lapply(NEEDED, read_masked_cpg)
 names(masked_pooled) <- NEEDED
-
 rows <- list()
 for (cond in NEEDED) {
   for (ln in names(LOCI)) {
-    l  <- LOCI[[ln]]
-    gr <- masked_pooled[[cond]]
+    l   <- LOCI[[ln]]
+    gr  <- masked_pooled[[cond]]
     sel <- as.character(seqnames(gr))==l$chr &
            start(gr)>=l$start & start(gr)<=l$end & gr$readsN>0
-    g <- gr[sel]
+    g   <- gr[sel]
     rows[[length(rows)+1]] <- data.frame(
       condition=cond, locus=ln, n_cpg=length(g),
       weighted_mean=if(length(g)>0) round(sum(g$readsM)/sum(g$readsN),4) else NA)
@@ -188,28 +213,13 @@ for (cond in NEEDED) {
 }
 df <- do.call(rbind, rows)
 print(df[order(df$locus, df$condition),], row.names=FALSE)
-write.table(df, file.path(OUT_DIR, "SMN_weighted_mean_masked_v2.tsv"),
+write.table(df, file.path(OUT_DIR, "SMN_weighted_mean_masked.tsv"),
             sep="\t", quote=FALSE, row.names=FALSE)
-message("Done.")
 
-# =============================================================================
-# SMN locus lowres profile — DMRcaller bins + ggplot2 smooth lines (no points)
-# =============================================================================
-suppressPackageStartupMessages({ library(ggplot2); library(patchwork) })
-
-COND_COLOURS <- c(
-  ASO_CTRL      = "#1B4F8A",
-  Scramble_CTRL = "#6B7280",
-  ASO_VPA       = "#B2182B",
-  Scramble_VPA  = "#D97706"
-)
-
-WIN_LOWRES <- 500  # 500bp bins — smooth but still captures locus variation
-
-message("\n=== Lowres sliding window SMN profile (DMRcaller bins) ===")
-
+# smoothed lowres overview using ggplot2 lines (no points)
+message("\nlowres smoothed SMN profile")
 for (alignment in c("masked","unmasked")) {
-  message("  Reading ", alignment, " data...")
+  message("  reading ", alignment, " data...")
   reader <- if(alignment=="masked") read_masked_cpg else read_unmasked_cpg
   pooled_lr <- lapply(NEEDED, reader)
   names(pooled_lr) <- NEEDED
@@ -217,19 +227,18 @@ for (alignment in c("masked","unmasked")) {
   plots <- lapply(names(LOCI), function(ln) {
     locus  <- LOCI[[ln]]
     region <- GRanges(seqnames=locus$chr,
-                      ranges=IRanges(locus$start - 5000, locus$end + 5000))
+                      ranges=IRanges(locus$start-5000, locus$end+5000))
 
-    # Compute methylation profile per condition using DMRcaller
+    # compute binned methylation profile per condition
     prof_df <- do.call(rbind, lapply(NEEDED, function(cond) {
       prof <- computeMethylationProfile(
         methylationData = pooled_lr[[cond]],
         region          = region,
         windowSize      = WIN_LOWRES,
-        context         = "CG"
-      )
-      df        <- as.data.frame(prof)
-      df$meth   <- df$sumReadsM / df$sumReadsN
-      df$pos    <- (df$start + df$end) / 2
+        context         = "CG")
+      df           <- as.data.frame(prof)
+      df$meth      <- df$sumReadsM / df$sumReadsN
+      df$pos       <- (df$start + df$end) / 2
       df$condition <- cond
       df[!is.na(df$meth) & df$sumReadsN >= 3, ]
     }))
@@ -237,7 +246,6 @@ for (alignment in c("masked","unmasked")) {
                                 levels=c("ASO_CTRL","Scramble_CTRL",
                                          "ASO_VPA","Scramble_VPA"))
 
-    # Exon 7 for SMN2 annotation
     ex7_s <- EXONS[[ln]][EXONS[[ln]]$is_target, "start"]
     ex7_e <- EXONS[[ln]][EXONS[[ln]]$is_target, "end"]
 
@@ -250,10 +258,11 @@ for (alignment in c("masked","unmasked")) {
       theme(legend.position="right",
             panel.grid.major.y=element_line(colour="grey92"),
             plot.title=element_text(face="bold", size=11)) +
-      labs(title=ln, x=sprintf("Position (chr5, %s alignment)", alignment),
+      labs(title=ln,
+           x=sprintf("Position (chr5, %s alignment)", alignment),
            y="CpG methylation", colour=NULL)
 
-    # Mark exon 7 in red for SMN2
+    # mark exon 7 in red for SMN2
     if (ln == "SMN2") {
       p <- p +
         annotate("rect", xmin=ex7_s, xmax=ex7_e, ymin=-Inf, ymax=Inf,
@@ -268,13 +277,13 @@ for (alignment in c("masked","unmasked")) {
     plot_layout(guides="collect") +
     plot_annotation(
       title    = sprintf("SMN locus methylation — %s alignment", alignment),
-      subtitle = sprintf("Methylation profile: %dbp smoothing window | DMR calling: 300bp bins | pooled replicates, CG context only", WIN_LOWRES),
+      subtitle = sprintf("%dbp bins, pooled replicates, CpG only", WIN_LOWRES),
       theme    = theme(plot.title=element_text(face="bold", size=12),
                        plot.subtitle=element_text(size=9, colour="grey30"))
     ) & theme(legend.position="right")
 
-  fname <- sprintf("SMN_locus_%s_lowres_smooth.pdf", alignment)
+  fname <- sprintf("SMN_locus_%s_lowres.pdf", alignment)
   ggsave(file.path(OUT_DIR, fname), combined, width=10, height=7)
-  message("  Saved: ", fname)
+  message("  saved: ", fname)
 }
-message("Lowres plots done.")
+message("done.")

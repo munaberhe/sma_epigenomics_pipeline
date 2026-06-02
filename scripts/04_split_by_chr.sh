@@ -9,6 +9,11 @@
 #SBATCH --array=1-12%6
 #SBATCH --requeue
 
+# Step 4: split the whole-genome CX report into per-chromosome CpG files.
+# DMRcaller loads data per chromosome so splitting here speeds up downstream steps.
+# Only CpG context (column 6 == "CG") is kept — CHG/CHH are discarded.
+# Output: one gzipped file per sample per chromosome in results/alignments_smn1_masked/by_chr/
+
 set -euo pipefail
 
 PROJECT_DIR=/data/scratch/bt25018/sma_epigenomics_pipeline
@@ -28,18 +33,19 @@ SAMPLE=${SAMPLES[$IDX]}
 CX_DIR=results/alignments_smn1_masked/cx_report
 OUT_DIR=results/alignments_smn1_masked/by_chr
 DONE=$OUT_DIR/.${SAMPLE}.splitchr.done
-
 mkdir -p "$OUT_DIR"
 
 module unload spack/0.23.1 2>/dev/null || true
 source ~/.bashrc
 conda activate sma_epigenomics_pipeline
 
+# skip if already done
 if [[ -f "$DONE" ]]; then
     echo "[$(date)] $SAMPLE already split, skipping."
     exit 0
 fi
 
+# find CX report (may or may not be gzipped)
 CX_FILE=""
 for cand in \
     "$CX_DIR/${SAMPLE}.CX_report.txt.gz" \
@@ -47,12 +53,13 @@ for cand in \
     [[ -f "$cand" ]] && CX_FILE="$cand" && break
 done
 if [[ -z "$CX_FILE" ]]; then
-    echo "ERROR: No CX report found for $SAMPLE in $CX_DIR"
+    echo "ERROR: No CX report found for $SAMPLE"
     exit 1
 fi
 
 echo "[$(date)] Splitting $SAMPLE by chromosome..."
 
+# stream through awk — filter to CpG only, split by chr into separate files
 if [[ "$CX_FILE" == *.gz ]]; then
     READ_CMD="zcat $CX_FILE"
 else
@@ -67,9 +74,10 @@ $READ_CMD | awk -v sample="$SAMPLE" -v outdir="$OUT_DIR" '
     }
 '
 
+# gzip all per-chr files
 for f in "$OUT_DIR/${SAMPLE}_chr"*.CpG_report.txt; do
     [[ -f "$f" ]] && gzip -f "$f"
 done
 
 touch "$DONE"
-echo "[$(date)] $SAMPLE split complete."
+echo "[$(date)] $SAMPLE done."

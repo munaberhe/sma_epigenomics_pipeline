@@ -9,11 +9,17 @@
 #SBATCH --array=1-12%1
 #SBATCH --requeue
 
+# Step 3: deduplicate aligned BAMs and extract methylation calls.
+# Runs one sample at a time (array throttle=1) to avoid disk bottlenecks.
+# Output: CX reports (CpG context only) in results/alignments_smn1_masked/cx_report/
+# CHG and CHH files are deleted after extraction to save space.
+
 set -euo pipefail
 
 PROJECT_DIR=/data/scratch/bt25018/sma_epigenomics_pipeline
 cd "$PROJECT_DIR"
 mkdir -p logs
+
 source scripts/check_scratch.sh 100
 
 SAMPLES=(
@@ -29,7 +35,6 @@ ALIGN_DIR=results/alignments_smn1_masked/bs
 DEDUP_DIR=results/alignments_smn1_masked/dedup
 EXTRACT_DIR=results/alignments_smn1_masked/methylation
 CX_DIR=results/alignments_smn1_masked/cx_report
-
 mkdir -p "$DEDUP_DIR" "$EXTRACT_DIR" "$CX_DIR"
 
 DONE=$CX_DIR/.${SAMPLE}.cx.done
@@ -38,12 +43,15 @@ module unload spack/0.23.1 2>/dev/null || true
 source ~/.bashrc
 conda activate sma_epigenomics_pipeline
 
+# skip if already done
 if [[ -f "$DONE" ]]; then
     echo "[$(date)] $SAMPLE already extracted, skipping."
     exit 0
 fi
 
 DEDUP_BAM="$DEDUP_DIR/${SAMPLE}_1_val_1_bismark_bt2_pe.deduplicated.bam"
+
+# deduplicate if not already done
 if [[ ! -f "$DEDUP_BAM" ]]; then
     BAM=""
     for cand in \
@@ -52,21 +60,23 @@ if [[ ! -f "$DEDUP_BAM" ]]; then
         [[ -f "$cand" ]] && BAM="$cand" && break
     done
     if [[ -z "$BAM" ]]; then
-        echo "ERROR: No aligned BAM found for $SAMPLE in $ALIGN_DIR"
+        echo "ERROR: No aligned BAM found for $SAMPLE"
         exit 1
     fi
     echo "[$(date)] Deduplicating $SAMPLE"
     deduplicate_bismark --paired --bam --output_dir "$DEDUP_DIR" "$BAM"
 else
-    echo "[$(date)] Dedup BAM already exists, skipping to extraction."
+    echo "[$(date)] Dedup BAM exists, skipping dedup."
 fi
 
+# sanity check the dedup BAM isn't truncated
 samtools quickcheck "$DEDUP_BAM" || {
-    echo "ERROR: Dedup BAM is truncated: $DEDUP_BAM"
+    echo "ERROR: Dedup BAM truncated: $DEDUP_BAM"
     exit 1
 }
 
-echo "[$(date)] Methylation extractor for $SAMPLE"
+# extract methylation — CX mode gives all contexts, we filter to CpG after
+echo "[$(date)] Extracting methylation for $SAMPLE"
 bismark_methylation_extractor \
     --paired-end \
     --comprehensive \
@@ -74,25 +84,25 @@ bismark_methylation_extractor \
     --bedGraph \
     --CX \
     --cytosine_report \
-    --genome_folder /data/scratch/bt25018/sma_epigenomics_pipeline/data/reference_smn1_masked \
+    --genome_folder data/reference_smn1_masked \
     --output "$EXTRACT_DIR" \
     "$DEDUP_BAM"
 
-echo "[$(date)] Removing CHG/CHH context files for $SAMPLE"
+# remove CHG/CHH files to save disk space
+echo "[$(date)] Removing non-CpG context files"
 rm -f "$EXTRACT_DIR"/CHG_context_${SAMPLE}*.txt
 rm -f "$EXTRACT_DIR"/CHH_context_${SAMPLE}*.txt
 
+# find and copy CX report (Bismark naming varies by version)
 CX_SRC=$(ls "$EXTRACT_DIR"/${SAMPLE}_1_val_1_bismark_bt2_*deduplicated*.CX_report.txt.gz 2>/dev/null | head -1)
 if [[ -z "$CX_SRC" ]]; then
     CX_SRC=$(ls "$EXTRACT_DIR"/${SAMPLE}_1_val_1_bismark_bt2_*deduplicated*.CX_report.txt 2>/dev/null | head -1)
 fi
 if [[ -z "$CX_SRC" ]]; then
-    echo "ERROR: CX report not produced for $SAMPLE"
+    echo "ERROR: CX report not found for $SAMPLE"
     exit 1
 fi
 
 gzip -c "$CX_SRC" > "$CX_DIR/${SAMPLE}.CX_report.txt.gz"
-
-
 touch "$DONE"
-echo "[$(date)] $SAMPLE methylation extraction complete."
+echo "[$(date)] $SAMPLE done."

@@ -8,13 +8,18 @@
 #SBATCH --partition=compute
 #SBATCH --requeue
 
+# Step 1: mask SMN1 in GRCh38 and build Bismark index on the masked reference.
+# SMN1 and SMN2 share >99% sequence identity so Bismark discards ambiguously
+# mapping reads by default. Masking SMN1 with Ns forces all SMN-derived reads
+# to map to SMN2, giving us full coverage at the SMN2 locus.
+# Note: this means we can't distinguish SMN1 vs SMN2 methylation — that's
+# acceptable because the question is locus-level, not paralog-resolved.
+
 set -euo pipefail
 
 PROJECT_DIR=/data/scratch/bt25018/sma_epigenomics_pipeline
 cd "$PROJECT_DIR"
-
-mkdir -p logs
-mkdir -p data/reference_smn1_masked
+mkdir -p logs data/reference_smn1_masked
 
 source scripts/check_scratch.sh 50
 
@@ -27,16 +32,19 @@ DONE_INDEX=$REF_DST_DIR/.index.done
 source ~/.bashrc
 conda activate sma_epigenomics_pipeline
 
+# skip if already done
 if [[ -f "$DONE_INDEX" ]]; then
-    echo "[$(date)] Stage 1 already complete, skipping."
+    echo "[$(date)] Index already built, skipping."
     exit 0
 fi
 
+# SMN1 coordinates on GRCh38 (0-based BED format)
 echo "[$(date)] Writing SMN1 mask BED"
 printf "chr5\t70924940\t70953015\tSMN1\n" > "$MASK_BED"
 
+# mask the reference if not already done
 if [[ ! -f "$REF_DST" ]]; then
-    echo "[$(date)] Masking SMN1 in $REF_SRC -> $REF_DST"
+    echo "[$(date)] Masking SMN1: $REF_SRC -> $REF_DST"
     bedtools maskfasta \
         -fi "$REF_SRC" \
         -bed "$MASK_BED" \
@@ -46,13 +54,15 @@ else
     echo "[$(date)] Masked FASTA already present, reusing."
 fi
 
-echo "[$(date)] Sanity check (first 60 bases of SMN1 region should be N):"
+# quick sanity check — first bases of SMN1 region should all be N
+echo "[$(date)] Sanity check (should see Ns):"
 samtools faidx "$REF_DST" chr5:70924941-70925000
 
-echo "[$(date)] Running bismark_genome_preparation"
+# build Bismark index on masked reference
+echo "[$(date)] Building Bismark index"
 bismark_genome_preparation \
     --parallel 8 \
     "$REF_DST_DIR/"
 
 touch "$DONE_INDEX"
-echo "[$(date)] Stage 1 complete."
+echo "[$(date)] Done."
