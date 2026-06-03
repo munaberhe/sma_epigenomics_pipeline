@@ -119,7 +119,6 @@ p_violin <- ggplot(violin_df, aes(x=sample, y=methylation, fill=condition)) +
   scale_fill_manual(values=GROUP_COLS) +
   scale_y_continuous(labels=scales::percent_format(accuracy=1)) +
   labs(title="Per-sample CpG methylation distribution (chr1)",
-                       " CpGs at >=5x | VPA samples show global hypomethylation"),
        x=NULL, y="CpG methylation proportion") +
   theme_classic(base_size=11) +
   theme(axis.text.x=element_text(angle=45, hjust=1, size=9),

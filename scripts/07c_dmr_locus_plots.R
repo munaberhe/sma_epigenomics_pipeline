@@ -95,7 +95,7 @@ plot_one <- function(meth_a, meth_b, ct, locus, dmrs=NULL) {
   ex <- locus$exons
   for (i in seq_len(nrow(ex))) {
     mtext(ex$label[i], side=1, at=(ex$start[i]+ex$end[i])/2,
-          line=if(i%%2==0) 0.5 else 1.8, cex=0.45,
+          line=1.2, cex=0.65,
           col=if(ex$is_target[i]) "red" else "black",
           font=if(ex$is_target[i]) 2 else 1)
   }
