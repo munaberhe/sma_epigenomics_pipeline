@@ -28,8 +28,8 @@ CONDITION <- setNames(
   SAMPLES)
 
 GROUP_COLS <- c(
-  ASO_CTRL="#2E9B6F", ASO_VPA="#D94F3D",
-  Scramble_VPA="#F0A500", Scramble_CTRL="#1D6FA4")
+  ASO_CTRL="#1B4F8A", ASO_VPA="#B2182B",
+  Scramble_VPA="#F0A500", Scramble_CTRL="#6B7280")
 
 # M-bias
 message("reading M-bias files...")
@@ -64,7 +64,6 @@ p_mbias <- ggplot(mbias_cpg, aes(x=position, y=pct_methylation,
   facet_wrap(~read, ncol=1) +
   scale_colour_manual(values=GROUP_COLS) +
   labs(title="M-bias — CpG context",
-       subtitle="flat lines = no positional bias",
        x="Position in read (bp)", y="% CpG methylation") +
   theme_classic(base_size=11) +
   theme(plot.title=element_text(face="bold"), strip.text=element_text(face="bold"))
@@ -153,7 +152,6 @@ p_violin <- ggplot(violin_df, aes(x=condition, y=methylation, fill=condition)) +
   scale_fill_manual(values=GROUP_COLS) +
   scale_y_continuous(labels=scales::percent_format(accuracy=1)) +
   labs(title="CpG methylation at high-confidence DMR loci",
-       subtitle="cytosinesCount >= 6, pooled replicates",
        x=NULL, y="CpG methylation proportion") +
   theme_classic(base_size=12) +
   theme(legend.position="none", plot.title=element_text(face="bold"),

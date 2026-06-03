@@ -25,10 +25,10 @@ CONDITION <- c(rep("ASO_CTRL",3), rep("ASO_VPA",3),
                rep("Scramble_CTRL",3), rep("Scramble_VPA",3))
 
 GROUP_COLS <- c(
-  ASO_CTRL      = "#2E9B6F",
-  ASO_VPA       = "#D94F3D",
+  ASO_CTRL      = "#1B4F8A",
+  ASO_VPA       = "#B2182B",
   Scramble_VPA  = "#F0A500",
-  Scramble_CTRL = "#1D6FA4"
+  Scramble_CTRL = "#6B7280"
 )
 
 # read chr1 CpG reports for all 12 samples
@@ -94,8 +94,6 @@ p <- ggplot(pca_df, aes(PC1, PC2, colour=condition,
   theme(plot.title=element_text(face="bold"), legend.position="right") +
   labs(
     title    = "PCA of per-replicate CpG methylation (chr1)",
-    subtitle = paste0("n=12 | ", format(nrow(meth_mat), big.mark=","),
-                      " CpGs | min coverage ", MIN_COV, "x"),
     x = paste0("PC1 (", var_exp[1], "%)"),
     y = paste0("PC2 (", var_exp[2], "%)")
   )
@@ -121,7 +119,6 @@ p_violin <- ggplot(violin_df, aes(x=sample, y=methylation, fill=condition)) +
   scale_fill_manual(values=GROUP_COLS) +
   scale_y_continuous(labels=scales::percent_format(accuracy=1)) +
   labs(title="Per-sample CpG methylation distribution (chr1)",
-       subtitle=paste0(format(nrow(meth_mat), big.mark=","),
                        " CpGs at >=5x | VPA samples show global hypomethylation"),
        x=NULL, y="CpG methylation proportion") +
   theme_classic(base_size=11) +

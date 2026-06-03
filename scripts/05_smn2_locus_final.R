@@ -69,7 +69,7 @@ COND_COLOURS <- c(
   ASO_CTRL      = "#1B4F8A",
   Scramble_CTRL = "#6B7280",
   ASO_VPA       = "#B2182B",
-  Scramble_VPA  = "#D97706"
+  Scramble_VPA  = "#F0A500"
 )
 
 # build a GRanges with gene and exon features for the plot track

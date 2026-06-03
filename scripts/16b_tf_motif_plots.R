@@ -56,12 +56,10 @@ p <- ggplot(top_df, aes(x=log2_enr, y=motif_name)) +
   geom_col(fill="#4b9eff", alpha=0.8) +
   geom_vline(xintercept=0, linewidth=0.5, colour="grey30") +
   labs(title="TF motif enrichment at ASO-specific DMRs (top 20 nominal)",
-       subtitle="no motifs reach padj<0.05 — negative result",
        x="log2 enrichment (ASO DMRs vs background)", y=NULL,
-       caption="ASO-driven methylation changes are not at canonical TF binding sites") +
+) +
   theme_classic(base_size=11) +
   theme(plot.title=element_text(face="bold"),
-        plot.caption=element_text(size=8, colour="#D94F3D", face="italic"),
         axis.text.y=element_text(size=9))
 ggsave(file.path(OUT_DIR, "motif_enrichment_top20_nominal.pdf"), p, width=10, height=7)
 message("saved: motif_enrichment_top20_nominal.pdf")
@@ -82,7 +80,6 @@ p2 <- ggplot(results_df, aes(x=log2_enr, y=negLog10padj)) +
   geom_text(data=head(results_df, 5),
             aes(label=motif_name), size=2.8, hjust=-0.1, colour="#1D6FA4") +
   labs(title="TF motif enrichment — volcano",
-       subtitle="746 JASPAR2020 vertebrate motifs, no motifs reach padj<0.05",
        x="log2 enrichment", y="-log10 adjusted p-value") +
   theme_classic(base_size=11) +
   theme(plot.title=element_text(face="bold"))

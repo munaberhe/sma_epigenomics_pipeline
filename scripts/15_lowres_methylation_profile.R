@@ -15,10 +15,10 @@ OUT_DIR    <- "results/lowres_profiles"
 dir.create(OUT_DIR, recursive=TRUE, showWarnings=FALSE)
 
 GROUP_COLS <- c(
-  ASO_VPA       = "#D94F3D",
-  ASO_CTRL      = "#2E9B6F",
+  ASO_VPA       = "#B2182B",
+  ASO_CTRL      = "#1B4F8A",
   Scramble_VPA  = "#F0A500",
-  Scramble_CTRL = "#1D6FA4"
+  Scramble_CTRL = "#6B7280"
 )
 GROUPS <- c("ASO_VPA", "ASO_CTRL", "Scramble_VPA", "Scramble_CTRL")
 

@@ -17,10 +17,10 @@ OUT <- "results/thesis_figures"
 dir.create(OUT, recursive=TRUE, showWarnings=FALSE)
 
 COLS <- c(
-  ASO_CTRL      = "#2E9B6F",
-  ASO_VPA       = "#D94F3D",
+  ASO_CTRL      = "#1B4F8A",
+  ASO_VPA       = "#B2182B",
   Scramble_VPA  = "#F0A500",
-  Scramble_CTRL = "#1D6FA4",
+  Scramble_CTRL = "#6B7280",
   Hypo          = "#4393C3",
   Hyper         = "#D6604D"
 )
@@ -56,13 +56,9 @@ make_hist <- function(dmr_obj, label, tag) {
                        labels=scales::percent_format(accuracy=1)) +
     scale_y_continuous(labels=scales::comma) +
     labs(title=paste0("(", tag, ") ", label),
-         x="methylation difference (treatment minus reference)", y="DMRs",
-         caption=paste0("n=", format(nrow(df), big.mark=","),
-                        "  hypo=", sum(df$direction=="Hypo"),
-                        "  hyper=", sum(df$direction=="Hyper"))) +
+         x="methylation difference (treatment minus reference)", y="DMRs") +
     theme_bw(base_size=10) +
     theme(plot.title=element_text(face="bold", size=9),
-          plot.caption=element_text(size=7, colour="grey40"),
           legend.position="top", panel.grid.minor=element_blank())
 }
 fig1 <- (make_hist(dmrs[[1]], CONTRASTS[[1]]$label, "A") |
@@ -202,7 +198,7 @@ p5a <- ggplot(motif_df, aes(x=log2enr, y=neglog10padj)) +
   geom_text(data=top5, aes(label=gsub("_.*","",motif)),
             size=2.5, vjust=-0.5, colour="grey30") +
   labs(title="(A) TF motif enrichment — negative result",
-       subtitle="no motifs reach padj<0.05",
+       subtitle=NULL,
        x="log2 enrichment", y="-log10(p.adj)") +
   theme_bw(base_size=10) +
   theme(plot.title=element_text(face="bold", size=9))

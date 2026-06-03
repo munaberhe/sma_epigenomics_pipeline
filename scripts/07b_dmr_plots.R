@@ -22,23 +22,23 @@ CONTRASTS <- list(
   list(name="ASO_CTRL_vs_Scramble_CTRL",
        cond_a="ASO_CTRL", cond_b="Scramble_CTRL",
        label="ASO alone vs Scramble CTRL",
-       colour=c(ASO_CTRL="#E41A1C", Scramble_CTRL="#377EB8")),
+       colour=c(ASO_CTRL="#1B4F8A", Scramble_CTRL="#6B7280")),
   list(name="ASO_VPA_vs_Scramble_CTRL",
        cond_a="ASO_VPA", cond_b="Scramble_CTRL",
        label="ASO+VPA vs Scramble CTRL",
-       colour=c(ASO_VPA="#984EA3", Scramble_CTRL="#377EB8")),
+       colour=c(ASO_VPA="#B2182B", Scramble_CTRL="#6B7280")),
   list(name="ASO_VPA_vs_ASO_CTRL",
        cond_a="ASO_VPA", cond_b="ASO_CTRL",
        label="VPA effect on ASO background",
-       colour=c(ASO_VPA="#984EA3", ASO_CTRL="#E41A1C")),
+       colour=c(ASO_VPA="#B2182B", ASO_CTRL="#1B4F8A")),
   list(name="ASO_VPA_vs_Scramble_VPA",
        cond_a="ASO_VPA", cond_b="Scramble_VPA",
        label="ASO effect on VPA background",
-       colour=c(ASO_VPA="#984EA3", Scramble_VPA="#FF7F00")),
+       colour=c(ASO_VPA="#B2182B", Scramble_VPA="#F0A500")),
   list(name="Scramble_VPA_vs_Scramble_CTRL",
        cond_a="Scramble_VPA", cond_b="Scramble_CTRL",
        label="VPA alone vs Scramble CTRL",
-       colour=c(Scramble_VPA="#FF7F00", Scramble_CTRL="#377EB8"))
+       colour=c(Scramble_VPA="#F0A500", Scramble_CTRL="#6B7280"))
 )
 
 CONDITIONS <- list(
@@ -112,10 +112,7 @@ for (ct in CONTRASTS) {
     scale_fill_manual(values=c(Hypo="#4393C3", Hyper="#D6604D")) +
     scale_y_continuous(labels=function(x) format(abs(x), big.mark=",")) +
     labs(title=paste("DMRs per chromosome --", ct$name),
-         subtitle=ct$label,
-         x="Chromosome", y="DMRs (hypo below, hyper above)",
-         caption=paste0("300bp bins | minDiff 0.20 | p<0.01 | n=",
-                        format(length(dmrs), big.mark=","))) +
+         x="Chromosome", y="DMRs (hypo below, hyper above)") +
     theme_bw(base_size=11) +
     theme(axis.text.x=element_text(angle=45, hjust=1, size=8),
           plot.title=element_text(face="bold"),
@@ -144,7 +141,6 @@ for (ct in CONTRASTS) {
     labs(title=paste("Methylation difference --", ct$name),
          x="Methylation difference (treatment minus reference)",
          y="DMRs",
-         caption=paste0("dotted lines = +/-20% threshold | n=",
                         format(nrow(df), big.mark=","))) +
     theme_bw(base_size=11) +
     theme(plot.title=element_text(face="bold"), legend.position="top")

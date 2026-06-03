@@ -166,7 +166,6 @@ p2 <- make_box(plot_df2, "condition",
 
 combined <- p1 / p2 +
   plot_annotation(title="H3K9me2 enrichment at WGBS DMR loci",
-                  subtitle="GSE167762, HEK293T",
                   theme=theme(plot.title=element_text(face="bold", size=13)))
 ggsave(file.path(OUT_DIR, "h3k9me2_signal_boxplot.pdf"), combined, width=10, height=9)
 
