@@ -140,8 +140,7 @@ for (ct in CONTRASTS) {
                        labels=scales::percent_format(accuracy=1)) +
     labs(title=paste("Methylation difference --", ct$name),
          x="Methylation difference (treatment minus reference)",
-         y="DMRs",
-                        format(nrow(df), big.mark=","))) +
+         y="DMRs") +
     theme_bw(base_size=11) +
     theme(plot.title=element_text(face="bold"), legend.position="top")
   ggsave(file.path(OUT_DIR, paste0(ct$name, "_methylation_difference.pdf")),
