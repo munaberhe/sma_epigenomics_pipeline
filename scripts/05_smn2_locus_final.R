@@ -177,7 +177,7 @@ for (alignment in c("masked","unmasked")) {
   for (ct in COMPARISONS) {
     fname <- sprintf("SMN_locus_%s_%s.pdf", alignment, ct$name)
     message("  plotting: ", fname)
-    pdf(file.path(OUT_DIR, fname), width=11, height=8.5, bg="white")
+    pdf(file.path(OUT_DIR, fname), width=11, height=8.5)
     par(mfrow=c(2,1), mar=c(5,4,3,1)+0.1, cex=0.9,
         bg="white", col.axis="black", col.lab="black",
         col.main="black", fg="black")
@@ -189,8 +189,11 @@ for (alignment in c("masked","unmasked")) {
   # combined PDF with all comparisons
   fname_all <- sprintf("SMN_locus_%s_all_comparisons.pdf", alignment)
   message("  plotting combined: ", fname_all)
-  pdf(file.path(OUT_DIR, fname_all), width=16, height=14, bg="white")
-  par(mfrow=c(3,2), mar=c(5,4,3,1)+0.1, cex=0.7,
+  pdf(file.path(OUT_DIR, fname_all), width=11, height=8.5)
+  n_panels <- length(COMPARISONS) * 2
+  n_cols <- 2
+  n_rows <- ceiling(n_panels / n_cols)
+  par(mfrow=c(n_rows, n_cols), mar=c(5,4,3,1)+0.1, cex=0.7,
       bg="white", col.axis="black", col.lab="black",
       col.main="black", fg="black")
   for (ct in COMPARISONS) {
@@ -289,7 +292,7 @@ for (alignment in c("masked","unmasked")) {
     ) & theme(legend.position="right")
 
   fname <- sprintf("SMN_locus_%s_lowres.pdf", alignment)
-  ggsave(file.path(OUT_DIR, fname), combined, width=10, height=7)
+  ggsave(file.path(OUT_DIR, fname), combined, width=10, height=7, device=cairo_pdf)
   message("  saved: ", fname)
 }
 message("done.")
@@ -352,5 +355,5 @@ combined <- (p_unmasked / p_masked) +
   theme(legend.position="right")
 
 ggsave(file.path(OUT_DIR, "SMN2_masked_vs_unmasked_comparison.pdf"),
-       combined, width=12, height=8)
+       combined, width=12, height=8, device=cairo_pdf)
 message("  saved: SMN2_masked_vs_unmasked_comparison.pdf")
