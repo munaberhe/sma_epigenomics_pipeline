@@ -36,24 +36,76 @@ CONTRASTS <- list(
 )
 
 LOCI <- list(
-  list(name="RNA45SN2", chr="chr21",
-       start=8206909, end=8211208, strand="+",
+  list(name="RNA45SN2",  chr="chr21", start=8204909,   end=8213208,
+       contrast="ASO_CTRL_vs_Scramble_CTRL",
        label="RNA45SN2 promoter (top ASO hit, p=1.56e-48)",
-       gene_start=8208909, gene_end=8209208,
-       exons=data.frame(label="DMR", start=8208909, end=8209208, is_target=TRUE)),
-  list(name="MTA1-DT", chr="chr14",
-       start=105414884, end=105421739, strand="-",
-       label="MTA1-DT (top ASO hypo hit, intron, p=1.72e-19)",
-       gene_start=105416884, gene_end=105419739,
+       annotation="Promoter (<=1kb) | hyper | -41.2%",
+       gene_start=8208909, gene_end=8209208, strand="+",
+       exons=data.frame(label="DMR", start=8208909, end=8209208, is_target=FALSE)),
+  list(name="MTA1-DT",   chr="chr14", start=105412884, end=105423739,
+       contrast="ASO_CTRL_vs_Scramble_CTRL",
+       label="MTA1-DT intron (top hypo hit, p=1.72e-19)",
+       annotation="Intron | hypo | +30.8%",
+       gene_start=105414884, gene_end=105421739, strand="-",
        exons=data.frame(
          label=c("E1","E2","E3","E4","E5","E6"),
          start=c(105416884,105417581,105417833,105418682,105418939,105419022),
          end=c(105418309,105418309,105418312,105418816,105419080,105419739),
          is_target=rep(FALSE,6))),
-  list(name="MYO1D", chr="chr17",
-       start=32800000, end=32850000, strand="-",
-       label="MYO1D (97 CpGs, p=7.83e-11, intronic)",
-       gene_start=32492522, gene_end=32877177,
+  list(name="TRPV2",     chr="chr17", start=16403754,  end=16410053,
+       contrast="ASO_CTRL_vs_Scramble_CTRL",
+       label="TRPV2 (p=4.44e-22, axonogenesis GO)",
+       annotation="Distal Intergenic | hyper | -33.5%",
+       gene_start=16183742, gene_end=16268367, strand="+",
+       exons=data.frame(label=character(0), start=numeric(0),
+                        end=numeric(0), is_target=logical(0))),
+  list(name="GLRA4",     chr="chrX",  start=103829053, end=103835352,
+       contrast="ASO_CTRL_vs_Scramble_CTRL",
+       label="GLRA4 chrX (p=5.86e-15, glycine receptor, neural)",
+       annotation="Promoter (<=1kb) | hypo | chrX hotspot",
+       gene_start=103829053, gene_end=103835352, strand="+",
+       exons=data.frame(label=character(0), start=numeric(0),
+                        end=numeric(0), is_target=logical(0))),
+  list(name="NRXN1",     chr="chr2",  start=49914401,  end=50627200,
+       contrast="ASO_CTRL_vs_Scramble_CTRL",
+       label="NRXN1 (8 neural GO terms, synaptic)",
+       annotation="Intron | 8 neural GO terms",
+       gene_start=49914401, gene_end=50627200, strand="+",
+       exons=data.frame(label=character(0), start=numeric(0),
+                        end=numeric(0), is_target=logical(0))),
+  list(name="PHACTR3",   chr="chr20", start=59601909,  end=59608208,
+       contrast="ASO_VPA_vs_Scramble_VPA",
+       label="PHACTR3 (p=1.02e-29, top ASO-on-VPA hypo)",
+       annotation="Promoter | hypo | ASO_VPA vs Scramble_VPA",
+       gene_start=59604540, gene_end=59847711, strand="+",
+       exons=data.frame(label=character(0), start=numeric(0),
+                        end=numeric(0), is_target=logical(0))),
+  list(name="SOX5",      chr="chr12", start=24037319,  end=24043918,
+       contrast="ASO_VPA_vs_Scramble_VPA",
+       label="SOX5 (p=1.02e-13, neural TF, motor neuron)",
+       annotation="Intron | hypo | motor neuron TF",
+       gene_start=23533941, gene_end=24090418, strand="+",
+       exons=data.frame(label=character(0), start=numeric(0),
+                        end=numeric(0), is_target=logical(0))),
+  list(name="SEMA3C",    chr="chr7",  start=80810801,  end=80817400,
+       contrast="ASO_VPA_vs_Scramble_CTRL",
+       label="SEMA3C (p=3.60e-69, axon guidance, neural)",
+       annotation="Intron | hypo | axon guidance",
+       gene_start=80765501, gene_end=80815949, strand="+",
+       exons=data.frame(label=character(0), start=numeric(0),
+                        end=numeric(0), is_target=logical(0))),
+  list(name="HOXC8",     chr="chr12", start=54001919,  end=54008218,
+       contrast="ASO_VPA_vs_Scramble_VPA",
+       label="HOXC8 (p=3.41e-15, homeobox, motor neuron)",
+       annotation="Promoter | hyper | motor neuron homeobox",
+       gene_start=54004919, gene_end=54008985, strand="+",
+       exons=data.frame(label=character(0), start=numeric(0),
+                        end=numeric(0), is_target=logical(0))),
+  list(name="SMN2",      chr="chr5",  start=70044638,  end=70083522,
+       contrast="ASO_CTRL_vs_Scramble_CTRL",
+       label="SMN2 therapeutic target (0 DMRs — null result)",
+       annotation="Null result — no DMRs at therapeutic target",
+       gene_start=70049638, gene_end=70078522, strand="-",
        exons=data.frame(label=character(0), start=numeric(0),
                         end=numeric(0), is_target=logical(0)))
 )
@@ -102,6 +154,11 @@ plot_one <- function(meth_a, meth_b, ct, locus, dmrs=NULL) {
   usr <- par("usr")
   text(usr[1], usr[3]+(usr[4]-usr[3])*0.05,
        labels=locus$name, cex=0.8, font=2, adj=c(0,0.5))
+  # annotation label
+  if (!is.null(locus$annotation)) {
+    mtext(locus$annotation, side=3, line=0.2, cex=0.7,
+          col="grey40", adj=1)
+  }
 }
 
 message("loading cached pooled data...")
@@ -117,13 +174,17 @@ for (ct in CONTRASTS) {
   message("  ", ct$name, ": ", length(dmr_results[[ct$name]]), " DMRs")
 }
 
-# individual PDFs — one per locus per contrast
+# individual PDFs — one per locus using its specific contrast
 message("\nindividual locus plots...")
-for (ct in CONTRASTS) {
-  for (locus in LOCI) {
+for (locus in LOCI) {
+  ct_name <- locus$contrast
+  ct <- CONTRASTS[[which(sapply(CONTRASTS, function(x) x$name == ct_name))]]
+  if (is.null(ct)) { message("  contrast not found: ", ct_name); next }
+  {
     locus_gr   <- GRanges(locus$chr, IRanges(locus$start, locus$end))
     dmrs_locus <- subsetByOverlaps(dmr_results[[ct$name]], locus_gr)
-    out_path   <- file.path(OUT_DIR, paste0(ct$name,"_",locus$name,"_annotated.pdf"))
+    message("  ", locus$name, " (", ct$name, "): ", length(dmrs_locus), " DMRs in region")
+    out_path   <- file.path(OUT_DIR, paste0(locus$name,"_annotated.pdf"))
     pdf(out_path, width=11, height=6, bg="white")
     par(bg="white", col.axis="black", col.lab="black",
         col.main="black", fg="black", mar=c(5,4,4,2)+0.1)
@@ -141,24 +202,26 @@ for (ct in CONTRASTS) {
   }
 }
 
-# combined PDFs — all contrasts for each locus
+# combined PDFs — locus-specific contrast only
 message("\ncombined per-locus PDFs...")
 for (locus in LOCI) {
-  locus_gr <- GRanges(locus$chr, IRanges(locus$start, locus$end))
-  out_path <- file.path(OUT_DIR, paste0(locus$name, "_all_contrasts.pdf"))
-  pdf(out_path, width=16, height=14, bg="white")
+  ct_name <- locus$contrast
+  ct <- CONTRASTS[[which(sapply(CONTRASTS, function(x) x$name == ct_name))]]
+  if (is.null(ct)) next
+  locus_gr   <- GRanges(locus$chr, IRanges(locus$start, locus$end))
+  dmrs_locus <- subsetByOverlaps(dmr_results[[ct$name]], locus_gr)
+  out_path   <- file.path(OUT_DIR, paste0(locus$name, "_", ct$name, ".pdf"))
+  pdf(out_path, width=11, height=6, bg="white")
   par(bg="white", col.axis="black", col.lab="black",
-      col.main="black", fg="black", mfrow=c(3,1),
-      mar=c(5,4,4,2)+0.1, cex=0.85)
-  for (ct in CONTRASTS) {
-    dmrs_locus <- subsetByOverlaps(dmr_results[[ct$name]], locus_gr)
-    tryCatch(
-      plot_one(meth_pooled[[ct$cond_a]], meth_pooled[[ct$cond_b]],
-               ct, locus, dmrs_locus),
-      error=function(e) { plot.new(); text(0.5,0.5,"failed",col="red") }
-    )
-  }
-  dev.off()
+      col.main="black", fg="black", mar=c(5,4,4,2)+0.1, cex=0.85)
+  tryCatch(
+    plot_one(meth_pooled[[ct$cond_a]], meth_pooled[[ct$cond_b]],
+             ct, locus, dmrs_locus),
+    error=function(e) { plot.new(); text(0.5,0.5,"failed",col="red") }
+  )
+  tryCatch(dev.off(), error=function(e) {
+    message("  WARNING: dev.off failed for ", basename(out_path), ": ", e$message)
+  })
   message("  saved: ", basename(out_path))
 }
 message("\ndone. outputs in: ", OUT_DIR)

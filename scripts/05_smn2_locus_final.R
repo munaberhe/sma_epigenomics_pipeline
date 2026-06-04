@@ -287,3 +287,64 @@ for (alignment in c("masked","unmasked")) {
   message("  saved: ", fname)
 }
 message("done.")
+
+# Masked vs unmasked side-by-side comparison for SMN2
+message("\nGenerating masked vs unmasked comparison...")
+library(patchwork)
+
+load_smn2_lowres <- function(alignment) {
+  reader <- if(alignment=="masked") read_masked_cpg else read_unmasked_cpg
+  pooled <- lapply(NEEDED, reader)
+  names(pooled) <- NEEDED
+  locus <- LOCI[["SMN2"]]
+  region <- GRanges(seqnames=locus$chr,
+                    ranges=IRanges(locus$start-5000, locus$end+5000))
+  prof_df <- do.call(rbind, lapply(NEEDED, function(cond) {
+    prof <- computeMethylationProfile(
+      methylationData=pooled[[cond]], region=region,
+      windowSize=300, context="CG")
+    df <- as.data.frame(prof)
+    df$meth <- df$sumReadsM / df$sumReadsN
+    df$pos  <- (df$start + df$end) / 2
+    df$condition <- cond
+    df$alignment <- alignment
+    df[!is.na(df$meth) & df$sumReadsN >= 3, ]
+  }))
+  prof_df
+}
+
+df_masked   <- load_smn2_lowres("masked")
+df_unmasked <- load_smn2_lowres("unmasked")
+df_both <- rbind(df_masked, df_unmasked)
+df_both$condition <- factor(df_both$condition,
+  levels=c("ASO_CTRL","Scramble_CTRL","ASO_VPA","Scramble_VPA"))
+
+make_panel <- function(df, title) {
+  ex7_s <- EXONS[["SMN2"]][EXONS[["SMN2"]]$is_target, "start"]
+  ex7_e <- EXONS[["SMN2"]][EXONS[["SMN2"]]$is_target, "end"]
+  ggplot(df, aes(x=pos, y=meth, colour=condition)) +
+    geom_line(linewidth=0.9, na.rm=TRUE) +
+    annotate("rect", xmin=ex7_s, xmax=ex7_e, ymin=-Inf, ymax=Inf,
+             fill="red", alpha=0.1) +
+    annotate("text", x=(ex7_s+ex7_e)/2, y=0.05,
+             label="E7", colour="red", size=3.5, fontface="bold") +
+    scale_colour_manual(values=COND_COLOURS) +
+    scale_y_continuous(limits=c(0,1), labels=scales::percent_format(1)) +
+    scale_x_continuous(labels=function(x) sprintf("%.3f Mb", x/1e6)) +
+    theme_classic(base_size=11) +
+    theme(legend.position="right",
+          panel.grid.major.y=element_line(colour="grey92"),
+          plot.title=element_text(face="bold", size=11)) +
+    labs(title=title, x="Position (chr5)", y="CpG methylation", colour=NULL)
+}
+
+p_masked   <- make_panel(df_masked,   "SMN2 — SMN1-masked alignment")
+p_unmasked <- make_panel(df_unmasked, "SMN2 — unmasked alignment")
+
+combined <- (p_unmasked / p_masked) +
+  plot_layout(guides="collect") &
+  theme(legend.position="right")
+
+ggsave(file.path(OUT_DIR, "SMN2_masked_vs_unmasked_comparison.pdf"),
+       combined, width=12, height=8)
+message("  saved: SMN2_masked_vs_unmasked_comparison.pdf")

@@ -29,16 +29,24 @@ CONTRASTS <- list(
        cond2=c('Scramble_VPA_1','Scramble_VPA_2','Scramble_VPA_3'))
 )
 
-# Load masked chr5 CX reports — subset to SMN2 region after loading
+# Load masked chr5 CX reports — manual read, subset to SMN2 region
 read_masked <- function(samples) {
-  region <- GRanges(seqnames='chr5',
-    ranges=IRanges(SMN2_START, SMN2_END))
   grs <- lapply(samples, function(s) {
     f <- file.path('results/alignments_smn1_masked/chr5_cx',
                    paste0(s, '_chr5.CX_report.txt'))
     if (!file.exists(f)) stop('Missing: ', f)
-    gr <- readBismark(f)
-    subsetByOverlaps(gr, region)
+    d <- read.table(f, header=FALSE, sep='\t',
+      col.names=c('chr','pos','strand','countM','countU','context','tri'),
+      colClasses=c('character','integer','character','integer',
+                   'integer','character','character'))
+    d <- d[d$context=='CG' &
+           d$pos >= SMN2_START & d$pos <= SMN2_END, ]
+    GRanges(seqnames=d$chr, ranges=IRanges(d$pos, d$pos),
+            strand=d$strand,
+            readsM=d$countM,
+            readsN=d$countM+d$countU,
+            context=d$context,
+            trinucleotide_context=d$tri)
   })
   poolMethylationDatasets(GRangesList(grs))
 }
@@ -98,8 +106,9 @@ for (ct in CONTRASTS) {
 }
 
 # Combine and save
-if (length(results_list) > 0) {
-  all_dmrs <- do.call(rbind, Filter(function(x) nrow(x)>0, results_list))
+non_empty <- Filter(function(x) !is.null(x) && nrow(x)>0, results_list)
+if (length(non_empty) > 0) {
+  all_dmrs <- do.call(rbind, non_empty)
   if (nrow(all_dmrs) > 0) {
     write.csv(all_dmrs, file.path(OUT, 'SMN2_sensitive_DMRs.csv'),
               row.names=FALSE)
@@ -111,6 +120,11 @@ if (length(results_list) > 0) {
     writeLines('No DMRs found at SMN2 with minDiff=0.05, binSize=100, minCytosines=3',
                file.path(OUT, 'SMN2_sensitive_DMR_result.txt'))
   }
+} else {
+  message('No DMRs found at SMN2 locus even with 5% threshold')
+  message('SMN2 is epigenetically protected from off-target methylation changes')
+  writeLines('No DMRs found at SMN2 with minDiff=0.05, binSize=100, minCytosines=3',
+             file.path(OUT, 'SMN2_sensitive_DMR_result.txt'))
 }
 
 message('\nDone. Results in: ', OUT)

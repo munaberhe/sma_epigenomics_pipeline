@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=smn_merge_align
-#SBATCH --mem=48G
+#SBATCH --mem=96G
 #SBATCH --time=24:00:00
 #SBATCH --partition=compute
 #SBATCH --array=1-12
@@ -28,7 +28,7 @@ bismark \
   --bowtie2 \
   -N 1 -L 20 \
   --score_min L,0,-0.6 \
-  --parallel 8 \
+  --parallel 4 \
   -1 "$TRIMDIR/${SAMPLE}_1_val_1.fq.gz" \
   -2 "$TRIMDIR/${SAMPLE}_2_val_2.fq.gz" \
   --output_dir "$OUTDIR"

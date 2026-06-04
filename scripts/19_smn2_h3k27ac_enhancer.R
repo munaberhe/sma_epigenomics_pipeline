@@ -99,8 +99,7 @@ p_peaks <- ggplot(all_peaks,
   scale_x_continuous(labels=function(x) paste0(x, " Mb")) +
   coord_cartesian(xlim=c(70.0, 70.085)) +
   labs(title="(A) H3K27ac ChIP-seq peaks at SMN2 locus",
-       subtitle=paste0("GSE246399 (HEK293T, Calandrelli et al.). ",
-                       "No peaks at SMN2 3' end in untreated cells."),
+       subtitle=NULL,
        x="chr5 position", y=NULL) +
   theme_bw(base_size=10) +
   theme(legend.position="none",
@@ -125,7 +124,7 @@ p_fc <- ggplot(all_peaks,
   scale_x_continuous(labels=function(x) paste0(x, " Mb")) +
   coord_cartesian(xlim=c(70.0, 70.085)) +
   labs(title="(B) H3K27ac fold enrichment by peak position",
-       subtitle="Red shading = E7 (ASO target). Dashed lines = SMN2 gene boundaries. Note: CTRL Rep2 shows high enrichment (31x) at ~70.025 Mb (SERF1B locus).",
+       subtitle=NULL,
        x="chr5 position", y="Fold enrichment over input") +
   theme_bw(base_size=10) +
   theme(legend.position="top",
@@ -136,15 +135,7 @@ p_fc <- ggplot(all_peaks,
 fig <- (p_peaks / p_fc) +
   plot_annotation(
     title="SMN2 locus H3K27ac enhancer analysis",
-    subtitle=paste0(
-      "H3K27ac peaks mark the SMN2 promoter region and an upstream element (~70.025 Mb) ",
-      "in untreated HEK293T cells.\n",
-      "No H3K27ac peaks detected at the SMN2 3' end in baseline conditions. ",
-      "VPA treatment gains additional gene body peaks\n",
-      "consistent with HDAC inhibitor-driven chromatin opening, ",
-      "but not at the 3' end specifically.
-",
-      "The upstream peak at ~70.025 Mb marks the SERF1B locus (SMA region pseudogene), not a distal SMN2 enhancer."),
+    subtitle=NULL,
     theme=theme(plot.title=element_text(face="bold", size=11),
                 plot.subtitle=element_text(size=8, colour="grey30"))
   )

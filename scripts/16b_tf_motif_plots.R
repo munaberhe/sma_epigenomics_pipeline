@@ -73,6 +73,7 @@ p2 <- ggplot(results_df, aes(x=log2_enr, y=negLog10padj)) +
   geom_point(aes(colour=highlight), size=1.5, alpha=0.7) +
   scale_colour_manual(values=c(neural="#2E9B6F", other="#cccccc"),
                       labels=c(neural="neural TFs", other="other")) +
+  scale_y_continuous(expand=expansion(mult=c(0.05, 0.20))) +
   geom_hline(yintercept=-log10(0.05), linetype="dashed",
              colour="grey50", linewidth=0.5) +
   annotate("text", x=max(results_df$log2_enr)*0.8,

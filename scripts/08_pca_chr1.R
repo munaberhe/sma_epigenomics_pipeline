@@ -84,8 +84,12 @@ message("PC1: ", var_exp[1], "% | PC2: ", var_exp[2], "%")
 
 p <- ggplot(pca_df, aes(PC1, PC2, colour=condition,
                          shape=replicate, label=sample)) +
-  geom_point(size=5, alpha=0.9) +
-  geom_text(vjust=-0.9, size=2.8, colour="grey30") +
+  geom_hline(yintercept=0, linetype="dotted", colour="grey60", linewidth=0.4) +
+  geom_vline(xintercept=0, linetype="dotted", colour="grey60", linewidth=0.4) +
+  geom_point(size=5, alpha=0.9,
+             position=position_jitter(width=0.3, height=0.3, seed=42)) +
+  geom_text(vjust=-0.9, size=2.8, colour="grey30",
+            position=position_jitter(width=0.3, height=0.3, seed=42)) +
   stat_ellipse(aes(group=condition), type="norm",
                linetype="dashed", linewidth=0.4, alpha=0.6) +
   scale_colour_manual(values=GROUP_COLS, name="Condition") +
@@ -97,9 +101,13 @@ p <- ggplot(pca_df, aes(PC1, PC2, colour=condition,
     x = paste0("PC1 (", var_exp[1], "%)"),
     y = paste0("PC2 (", var_exp[2], "%)")
   )
-ggsave(file.path(OUT, "sample_PCA_12samples_chr1.pdf"), p, width=9, height=7)
-ggsave(file.path(OUT, "sample_PCA_12samples_chr1.png"), p, width=9, height=7, dpi=200)
-message("saved PCA plot")
+tryCatch({
+  ggsave(file.path(OUT, "sample_PCA_12samples_chr1.pdf"), p,
+         width=9, height=7, device=cairo_pdf)
+  ggsave(file.path(OUT, "sample_PCA_12samples_chr1.png"), p,
+         width=9, height=7, dpi=200)
+  message("saved PCA plot")
+}, error=function(e) message("PCA save failed: ", e$message))
 
 # per-sample methylation violin
 message("generating violin plot...")
@@ -123,9 +131,11 @@ p_violin <- ggplot(violin_df, aes(x=sample, y=methylation, fill=condition)) +
   theme_classic(base_size=11) +
   theme(axis.text.x=element_text(angle=45, hjust=1, size=9),
         plot.title=element_text(face="bold"), legend.position="top")
-ggsave(file.path(OUT, "per_sample_methylation_violin_chr1.pdf"),
-       p_violin, width=14, height=6)
-ggsave(file.path(OUT, "per_sample_methylation_violin_chr1.png"),
-       p_violin, width=14, height=6, dpi=200)
-message("saved violin plot")
+tryCatch({
+  ggsave(file.path(OUT, "per_sample_methylation_violin_chr1.pdf"),
+         p_violin, width=14, height=6, device=cairo_pdf)
+  ggsave(file.path(OUT, "per_sample_methylation_violin_chr1.png"),
+         p_violin, width=14, height=6, dpi=200)
+  message("saved violin plot")
+}, error=function(e) message("violin save failed: ", e$message))
 message("done.")
