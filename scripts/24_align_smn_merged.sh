@@ -3,7 +3,7 @@
 #SBATCH --mem=96G
 #SBATCH --time=24:00:00
 #SBATCH --partition=compute
-#SBATCH --array=1-12
+#SBATCH --array=1-12%2
 #SBATCH --output=logs/smn_merge_align_%a_%j.log
 #SBATCH --error=logs/smn_merge_align_%a_%j.err
 
@@ -33,4 +33,10 @@ bismark \
   -2 "$TRIMDIR/${SAMPLE}_2_val_2.fq.gz" \
   --output_dir "$OUTDIR"
 
+echo "Done aligning: $SAMPLE"
+
+# Clean up Bismark temp files to prevent quota overflow
+echo "Cleaning up temp files..."
+rm -f "$OUTDIR"/${SAMPLE}*.temp.*
+rm -f /gpfs/scratch/bt25018/sma_epigenomics_pipeline/${SAMPLE}*.temp.*
 echo "Done: $SAMPLE"

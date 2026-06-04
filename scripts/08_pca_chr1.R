@@ -104,8 +104,6 @@ p <- ggplot(pca_df, aes(PC1, PC2, colour=condition,
 tryCatch({
   ggsave(file.path(OUT, "sample_PCA_12samples_chr1.pdf"), p,
          width=9, height=7, device=cairo_pdf)
-  ggsave(file.path(OUT, "sample_PCA_12samples_chr1.png"), p,
-         width=9, height=7, dpi=200)
   message("saved PCA plot")
 }, error=function(e) message("PCA save failed: ", e$message))
 
@@ -134,8 +132,6 @@ p_violin <- ggplot(violin_df, aes(x=sample, y=methylation, fill=condition)) +
 tryCatch({
   ggsave(file.path(OUT, "per_sample_methylation_violin_chr1.pdf"),
          p_violin, width=14, height=6, device=cairo_pdf)
-  ggsave(file.path(OUT, "per_sample_methylation_violin_chr1.png"),
-         p_violin, width=14, height=6, dpi=200)
   message("saved violin plot")
 }, error=function(e) message("violin save failed: ", e$message))
 message("done.")
