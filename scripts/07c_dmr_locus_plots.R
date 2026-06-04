@@ -185,7 +185,7 @@ for (locus in LOCI) {
     dmrs_locus <- subsetByOverlaps(dmr_results[[ct$name]], locus_gr)
     message("  ", locus$name, " (", ct$name, "): ", length(dmrs_locus), " DMRs in region")
     out_path   <- file.path(OUT_DIR, paste0(locus$name,"_annotated.pdf"))
-    pdf(out_path, width=11, height=6, bg="white")
+    cairo_pdf(out_path, width=11, height=6, bg="white")
     par(bg="white", col.axis="black", col.lab="black",
         col.main="black", fg="black", mar=c(5,4,4,2)+0.1)
     tryCatch(
@@ -211,7 +211,7 @@ for (locus in LOCI) {
   locus_gr   <- GRanges(locus$chr, IRanges(locus$start, locus$end))
   dmrs_locus <- subsetByOverlaps(dmr_results[[ct$name]], locus_gr)
   out_path   <- file.path(OUT_DIR, paste0(locus$name, "_", ct$name, ".pdf"))
-  pdf(out_path, width=11, height=6, bg="white")
+  cairo_pdf(out_path, width=11, height=6, bg="white")
   par(bg="white", col.axis="black", col.lab="black",
       col.main="black", fg="black", mar=c(5,4,4,2)+0.1, cex=0.85)
   tryCatch(
