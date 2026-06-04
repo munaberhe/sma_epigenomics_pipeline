@@ -142,8 +142,6 @@ fig <- (p_peaks / p_fc) +
 
 ggsave(file.path(OUT, "SMN2_H3K27ac_enhancer_analysis.pdf"),
        fig, width=14, height=10)
-ggsave(file.path(OUT, "SMN2_H3K27ac_enhancer_analysis.png"),
-       fig, width=14, height=10, dpi=300)
 message("Saved: SMN2_H3K27ac_enhancer_analysis")
 
 # Summary table for thesis

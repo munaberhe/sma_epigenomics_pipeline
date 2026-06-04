@@ -71,6 +71,19 @@ COMPARISONS <- list(
 
 NEEDED <- unique(unlist(lapply(COMPARISONS, function(x) c(x$cond1, x$cond2))))
 
+# Sensitive DMRs found at SMN2 at 2% threshold (ASO_VPA vs Scramble_VPA only)
+SENSITIVE_DMRS <- list(
+  ASO_vs_Scramble_VPA = GRanges(
+    seqnames = "chr5",
+    ranges   = IRanges(
+      start = c(70074938, 70088438),
+      end   = c(70074987, 70088487)
+    ),
+    regionType = c("loss", "gain"),
+    pValue     = c(0.037, 0.033)
+  )
+)
+
 COND_COLOURS <- c(
   ASO_CTRL      = "#1B4F8A",
   Scramble_CTRL = "#6B7280",
@@ -137,7 +150,7 @@ read_unmasked_cpg <- function(condition) {
 }
 
 # detailed locus plot using DMRcaller's plotLocalMethylationProfile
-plot_one <- function(pooled, comp, locus_name) {
+plot_one <- function(pooled, comp, locus_name, dmrs=NULL) {
   locus  <- LOCI[[locus_name]]
   region <- GRanges(seqnames=locus$chr,
                     ranges=IRanges(locus$start-FLANK, locus$end+FLANK))
@@ -145,11 +158,12 @@ plot_one <- function(pooled, comp, locus_name) {
     methylationData1 = pooled[[comp$cond1]],
     methylationData2 = pooled[[comp$cond2]],
     region           = region,
-    DMRs             = NULL,
+    DMRs             = if(!is.null(dmrs)) list("DMRs"=dmrs) else NULL,
     conditionsNames  = c(comp$cond1, comp$cond2),
     gff              = GEs,
     windowSize       = WIN_SIZE,
     context          = "CG",
+    col              = c(COND_COLOURS[comp$cond1], COND_COLOURS[comp$cond2]),
     main             = sprintf("%s: %s vs %s", locus_name, comp$cond1, comp$cond2),
     plotMeanLines    = TRUE,
     plotPoints       = TRUE
@@ -177,28 +191,33 @@ for (alignment in c("masked","unmasked")) {
   for (ct in COMPARISONS) {
     fname <- sprintf("SMN_locus_%s_%s.pdf", alignment, ct$name)
     message("  plotting: ", fname)
-    pdf(file.path(OUT_DIR, fname), width=11, height=8.5)
-    par(mfrow=c(2,1), mar=c(5,4,3,1)+0.1, cex=0.9,
+    h <- if(alignment=="masked") 6 else 8.5
+    nr <- if(alignment=="masked") 1 else 2
+    cairo_pdf(file.path(OUT_DIR, fname), width=11, height=h)
+    par(mfrow=c(nr,1), mar=c(5,4,3,1)+0.1, cex=0.9,
         bg="white", col.axis="black", col.lab="black",
         col.main="black", fg="black")
-    plot_one(pooled, ct, "SMN1")
-    plot_one(pooled, ct, "SMN2")
+    if(alignment=="unmasked") plot_one(pooled, ct, "SMN1")
+    dmrs_arg <- if(!is.null(SENSITIVE_DMRS[[ct$name]])) SENSITIVE_DMRS[[ct$name]] else NULL
+    plot_one(pooled, ct, "SMN2", dmrs=dmrs_arg)
     dev.off()
   }
 
   # combined PDF with all comparisons
   fname_all <- sprintf("SMN_locus_%s_all_comparisons.pdf", alignment)
   message("  plotting combined: ", fname_all)
-  pdf(file.path(OUT_DIR, fname_all), width=11, height=8.5)
-  n_panels <- length(COMPARISONS) * 2
+  n_loci   <- if(alignment=="masked") 1 else 2
+  n_panels <- length(COMPARISONS) * n_loci
   n_cols <- 2
   n_rows <- ceiling(n_panels / n_cols)
+  cairo_pdf(file.path(OUT_DIR, fname_all), width=11, height=n_rows*3.5)
   par(mfrow=c(n_rows, n_cols), mar=c(5,4,3,1)+0.1, cex=0.7,
       bg="white", col.axis="black", col.lab="black",
       col.main="black", fg="black")
   for (ct in COMPARISONS) {
-    plot_one(pooled, ct, "SMN1")
-    plot_one(pooled, ct, "SMN2")
+    if(alignment=="unmasked") plot_one(pooled, ct, "SMN1")
+    dmrs_arg <- if(!is.null(SENSITIVE_DMRS[[ct$name]])) SENSITIVE_DMRS[[ct$name]] else NULL
+    plot_one(pooled, ct, "SMN2", dmrs=dmrs_arg)
   }
   dev.off()
 }
@@ -258,9 +277,13 @@ for (alignment in c("masked","unmasked")) {
     ex7_s <- EXONS[[ln]][EXONS[[ln]]$is_target, "start"]
     ex7_e <- EXONS[[ln]][EXONS[[ln]]$is_target, "end"]
 
-    p <- ggplot(prof_df, aes(x=pos, y=meth, colour=condition)) +
-      geom_line(linewidth=0.9, na.rm=TRUE) +
+    COND_LTY <- c(ASO_CTRL="solid", Scramble_CTRL="dashed",
+                  ASO_VPA="solid", Scramble_VPA="dashed")
+    p <- ggplot(prof_df, aes(x=pos, y=meth, colour=condition,
+                             linetype=condition)) +
+      geom_line(linewidth=1.1, na.rm=TRUE) +
       scale_colour_manual(values=COND_COLOURS) +
+      scale_linetype_manual(values=COND_LTY) +
       scale_y_continuous(limits=c(0,1), labels=scales::percent_format(1)) +
       scale_x_continuous(labels=function(x) sprintf("%.3f Mb", x/1e6)) +
       theme_classic(base_size=11) +
@@ -269,7 +292,7 @@ for (alignment in c("masked","unmasked")) {
             plot.title=element_text(face="bold", size=11)) +
       labs(title=ln,
            x=sprintf("Position (chr5, %s alignment)", alignment),
-           y="CpG methylation", colour=NULL)
+           y="CpG methylation", colour=NULL, linetype=NULL)
 
     # mark exon 7 in red for SMN2
     if (ln == "SMN2") {

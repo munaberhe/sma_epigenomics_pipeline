@@ -36,12 +36,13 @@ CONTRASTS <- list(
 )
 
 LOCI <- list(
-  list(name="RNA45SN2",  chr="chr21", start=8204909,   end=8213208,
+  list(name="LINC00391", chr="chr13", start=94706731, end=94713522,
        contrast="ASO_CTRL_vs_Scramble_CTRL",
-       label="RNA45SN2 promoter (top ASO hit, p=1.56e-48)",
-       annotation="Promoter (<=1kb) | hyper | -41.2%",
-       gene_start=8208909, gene_end=8209208, strand="+",
-       exons=data.frame(label="DMR", start=8208909, end=8209208, is_target=FALSE)),
+       label="LINC00391 promoter (top hypo hit, p=2.95e-82)",
+       annotation="Promoter (1-2kb) | hypo | +22.7%",
+       gene_start=94705731, gene_end=94708526, strand="-",
+       exons=data.frame(label=character(0), start=numeric(0),
+                        end=numeric(0), is_target=logical(0))),
   list(name="MTA1-DT",   chr="chr14", start=105412884, end=105423739,
        contrast="ASO_CTRL_vs_Scramble_CTRL",
        label="MTA1-DT intron (top hypo hit, p=1.72e-19)",
@@ -52,11 +53,11 @@ LOCI <- list(
          start=c(105416884,105417581,105417833,105418682,105418939,105419022),
          end=c(105418309,105418309,105418312,105418816,105419080,105419739),
          is_target=rep(FALSE,6))),
-  list(name="TRPV2",     chr="chr17", start=16403754,  end=16410053,
+  list(name="LMO7",      chr="chr13", start=75631723, end=75638322,
        contrast="ASO_CTRL_vs_Scramble_CTRL",
-       label="TRPV2 (p=4.44e-22, axonogenesis GO)",
-       annotation="Distal Intergenic | hyper | -33.5%",
-       gene_start=16183742, gene_end=16268367, strand="+",
+       label="LMO7 promoter (p=1.68e-80, hypo)",
+       annotation="Promoter (<=1kb) | hypo | +23.0%",
+       gene_start=75635810, gene_end=75804335, strand="+",
        exons=data.frame(label=character(0), start=numeric(0),
                         end=numeric(0), is_target=logical(0))),
   list(name="GLRA4",     chr="chrX",  start=103829053, end=103835352,
@@ -94,11 +95,11 @@ LOCI <- list(
        gene_start=80765501, gene_end=80815949, strand="+",
        exons=data.frame(label=character(0), start=numeric(0),
                         end=numeric(0), is_target=logical(0))),
-  list(name="HOXC8",     chr="chr12", start=54001919,  end=54008218,
-       contrast="ASO_VPA_vs_Scramble_VPA",
-       label="HOXC8 (p=3.41e-15, homeobox, motor neuron)",
-       annotation="Promoter | hyper | motor neuron homeobox",
-       gene_start=54004919, gene_end=54008985, strand="+",
+  list(name="DNMBP",     chr="chr10", start=99913194, end=99920693,
+       contrast="ASO_CTRL_vs_Scramble_CTRL",
+       label="DNMBP promoter (p=4.57e-66, hypo)",
+       annotation="Promoter (2-3kb) | hypo | +23.2%",
+       gene_start=99875577, gene_end=99914082, strand="-",
        exons=data.frame(label=character(0), start=numeric(0),
                         end=numeric(0), is_target=logical(0))),
   list(name="SMN2",      chr="chr5",  start=70044638,  end=70083522,
@@ -129,6 +130,8 @@ plot_one <- function(meth_a, meth_b, ct, locus, dmrs=NULL) {
   region   <- GRanges(locus$chr, IRanges(locus$start, locus$end))
   gff      <- build_gff(locus)
   dmrs_arg <- if (!is.null(dmrs) && length(dmrs) > 0) list("DMRs"=dmrs) else NULL
+  COLS <- c(ASO_CTRL="#1B4F8A", ASO_VPA="#B2182B",
+            Scramble_VPA="#F0A500", Scramble_CTRL="#6B7280")
   plotLocalMethylationProfile(
     methylationData1 = meth_a,
     methylationData2 = meth_b,
@@ -138,6 +141,7 @@ plot_one <- function(meth_a, meth_b, ct, locus, dmrs=NULL) {
     gff              = gff,
     windowSize       = WIN_SIZE,
     context          = "CG",
+    col              = c(COLS[ct$cond_a], COLS[ct$cond_b]),
     main             = sprintf("%s: %s vs %s (%s)\n%s",
                                locus$name, ct$cond_a, ct$cond_b,
                                ct$label, locus$label),

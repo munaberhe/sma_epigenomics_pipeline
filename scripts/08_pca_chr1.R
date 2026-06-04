@@ -4,6 +4,7 @@ suppressPackageStartupMessages({
   library(DMRcaller)
   library(GenomicRanges)
   library(ggplot2)
+  library(ggrepel)
 })
 
 # PCA of per-replicate CpG methylation using chr1 as representative chromosome.
@@ -88,7 +89,9 @@ p <- ggplot(pca_df, aes(PC1, PC2, colour=condition,
   geom_vline(xintercept=0, linetype="dotted", colour="grey60", linewidth=0.4) +
   geom_point(size=5, alpha=0.9,
              position=position_jitter(width=0.3, height=0.3, seed=42)) +
-  geom_text(vjust=-0.9, size=2.8, colour="grey30",
+  geom_text_repel(size=3.2, colour="grey20",
+                  max.overlaps=20, box.padding=0.4,
+                  segment.colour="grey70", segment.size=0.3,
             position=position_jitter(width=0.3, height=0.3, seed=42)) +
   stat_ellipse(aes(group=condition), type="norm",
                linetype="dashed", linewidth=0.4, alpha=0.6) +

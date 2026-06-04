@@ -42,6 +42,13 @@ make_manhattan <- function(dmr_file, contrast_name, cond_colour) {
   df$meth_diff <- df$meth_diff[df$seqnames %in% CHR_ORDER]
   df <- df[!is.na(df$cum_pos) & !is.na(df$meth_diff), ]
 
+  # downsample large DMR sets for plotting
+  if (nrow(df) > 20000) {
+    set.seed(42)
+    df <- df[sample(nrow(df), 20000), ]
+    message("  downsampled to 20,000 DMRs for plotting")
+  }
+
   # alternate chromosome shading
   df$shade <- as.integer(df$seqnames) %% 2 == 0
 

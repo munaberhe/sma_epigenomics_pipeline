@@ -64,18 +64,44 @@ for (ct in CONTRASTS) {
     message('  Condition 1 CpGs: ', length(pooled1))
     message('  Condition 2 CpGs: ', length(pooled2))
 
-    # Sensitive parameters: 5% minDiff, 100bp window, 3 CpGs minimum
+    smn2_region <- GRanges(seqnames='chr5',
+                           ranges=IRanges(SMN2_START, SMN2_END))
+
+    # Test 3 parameter sets
+    param_sets <- list(
+      list(label="5pct_100bp",   minDiff=0.05, binSize=100, minCyto=3, pval=0.05),
+      list(label="2pct_50bp",    minDiff=0.02, binSize=50,  minCyto=2, pval=0.05),
+      list(label="1pct_50bp",    minDiff=0.01, binSize=50,  minCyto=2, pval=0.10)
+    )
+
+    for (ps in param_sets) {
+      message("  Testing params: ", ps$label)
+      dmrs <- computeDMRs(pooled1, pooled2,
+        regions     = smn2_region,
+        context     = 'CG',
+        method      = 'bins',
+        binSize     = ps$binSize,
+        minCytosinesCount = ps$minCyto,
+        minReadsPerCytosine = 3,
+        pValueThreshold = ps$pval,
+        test        = 'score')
+      if (length(dmrs) > 0) {
+        meth_diff <- abs(dmrs$proportion1 - dmrs$proportion2)
+        dmrs <- dmrs[meth_diff >= ps$minDiff]
+      }
+      message("    DMRs found (", ps$label, "): ", length(dmrs))
+      if (length(dmrs) > 0) print(as.data.frame(dmrs))
+    }
+    # Use 5% for main results
     dmrs <- computeDMRs(pooled1, pooled2,
-      regions     = GRanges(seqnames='chr5',
-                            ranges=IRanges(SMN2_START, SMN2_END)),
+      regions     = smn2_region,
       context     = 'CG',
       method      = 'bins',
       binSize     = 100,
       minCytosinesCount = 3,
       minReadsPerCytosine = 3,
       pValueThreshold = 0.05,
-      test        = 'fisher')
-    # Apply minDiff filter post-hoc
+      test        = 'score')
     if (length(dmrs) > 0) {
       meth_diff <- abs(dmrs$proportion1 - dmrs$proportion2)
       dmrs <- dmrs[meth_diff >= 0.05]

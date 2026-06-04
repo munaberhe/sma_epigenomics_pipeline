@@ -67,7 +67,6 @@ fig1 <- (make_hist(dmrs[[1]], CONTRASTS[[1]]$label, "A") |
   plot_annotation(title="Figure 1 — Methylation difference distributions",
                   theme=theme(plot.title=element_text(face="bold", size=11)))
 ggsave(file.path(OUT, "Fig1_methylation_diff_histograms.pdf"), fig1, width=15, height=5)
-ggsave(file.path(OUT, "Fig1_methylation_diff_histograms.png"), fig1, width=15, height=5, dpi=300)
 message("saved Fig1")
 
 # Figure 2: per-chromosome bar charts
@@ -97,7 +96,6 @@ fig2 <- (make_chr_bar(dmrs[[1]], CONTRASTS[[1]]$label, "A") /
   plot_annotation(title="Figure 2 — DMR chromosomal distribution",
                   theme=theme(plot.title=element_text(face="bold", size=11)))
 ggsave(file.path(OUT, "Fig2_per_chromosome_bars.pdf"), fig2, width=14, height=10)
-ggsave(file.path(OUT, "Fig2_per_chromosome_bars.png"), fig2, width=14, height=10, dpi=300)
 message("saved Fig2")
 
 # Figure 3: QC triptych
@@ -145,7 +143,6 @@ fig3 <- (p3a | p3b) +
   plot_annotation(title="Figure 3 — Quality control",
                   theme=theme(plot.title=element_text(face="bold", size=11)))
 ggsave(file.path(OUT, "Fig3_QC.pdf"), fig3, width=14, height=6)
-ggsave(file.path(OUT, "Fig3_QC.png"), fig3, width=14, height=6, dpi=300)
 message("saved Fig3")
 
 # Figure 4: H3K9me2
@@ -176,7 +173,6 @@ fig4 <- (p4a | p4b) +
   plot_annotation(title="Figure 4 — H3K9me2 enrichment analysis",
                   theme=theme(plot.title=element_text(face="bold", size=11)))
 ggsave(file.path(OUT, "Fig4_H3K9me2.pdf"), fig4, width=12, height=5)
-ggsave(file.path(OUT, "Fig4_H3K9me2.png"), fig4, width=12, height=5, dpi=300)
 message("saved Fig4")
 
 # Figure 5: negative results
@@ -220,7 +216,6 @@ fig5 <- (p5a | p5b) +
   plot_annotation(title="Figure 5 — Mechanism exclusion analyses",
                   theme=theme(plot.title=element_text(face="bold", size=11)))
 ggsave(file.path(OUT, "Fig5_negative_results.pdf"), fig5, width=14, height=6)
-ggsave(file.path(OUT, "Fig5_negative_results.png"), fig5, width=14, height=6, dpi=300)
 message("saved Fig5")
 
 message("\ndone. thesis figures in: ", OUT)

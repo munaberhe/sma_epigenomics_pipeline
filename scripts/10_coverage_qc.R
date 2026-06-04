@@ -156,8 +156,6 @@ combined <- (panels[[1]] / panels[[2]] / panels[[3]] / panels[[4]]) +
 # save
 ggsave(file.path(OUT_DIR, "coverage_4lines_per_condition.pdf"),
        combined, width = 8, height = 12)
-ggsave(file.path(OUT_DIR, "coverage_4lines_per_condition.png"),
-       combined, width = 8, height = 12, dpi = 200)
 write.table(summary_all,
             file.path(OUT_DIR, "coverage_4lines_per_condition_summary.tsv"),
             sep = "\t", quote = FALSE, row.names = FALSE)
