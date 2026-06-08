@@ -1,13 +1,6 @@
 # Snakefile - SMA Epigenomics WGBS Pipeline
 # Muna Berhe, bt25018, MSc Bioinformatics, QMUL
 # Supervisor: Prof Radu Zabet
-#
-# Full pipeline from raw FASTQ to DMR annotation and SMN locus plots.
-# Covers both unmasked (genome-wide DMR calling) and SMN1-masked
-# (SMN2-specific locus analysis) alignments.
-#
-# To run: snakemake --profile configs/slurm_profile --jobs 12
-# Dry run: snakemake -n
 
 configfile: "configs/config.yaml"
 
@@ -17,67 +10,64 @@ SAMPLES = [
     "Scramble_CTRL_1", "Scramble_CTRL_2", "Scramble_CTRL_3",
     "Scramble_VPA_1",  "Scramble_VPA_2",  "Scramble_VPA_3",
 ]
-
 CONDITIONS = ["ASO_CTRL", "ASO_VPA", "Scramble_CTRL", "Scramble_VPA"]
 CHROMS     = [f"chr{c}" for c in list(range(1, 23)) + ["X", "Y"]]
-
-# Three contrasts matching the locked DMRcaller parameters (confirmed 5 May 2026)
-CONTRASTS = [
-    "ASO_VPA_vs_Scramble_CTRL",
+CONTRASTS  = [
     "ASO_CTRL_vs_Scramble_CTRL",
+    "ASO_VPA_vs_Scramble_CTRL",
+    "ASO_VPA_vs_ASO_CTRL",
+    "ASO_VPA_vs_Scramble_VPA",
     "Scramble_VPA_vs_Scramble_CTRL",
 ]
 
 RSCRIPT = "/share/apps/rocky9/containers/R/4.5.1/bin/Rscript"
 R_LIBS  = "/data/home/bt25018/R/library"
 
-
 rule all:
-    # Final outputs expected from the complete pipeline run
     input:
-        # Unmasked alignment done markers (12 samples)
+        # Alignment
         expand("results/alignments/bs/.{sample}.align.done", sample=SAMPLES),
-        # Per-chromosome CpG reports for genome-wide DMR calling
         expand("results/alignments/bs/by_chr/.{sample}.split.done", sample=SAMPLES),
-        # SMN1-masked alignment done markers
         expand("results/alignments_smn1_masked/bs/.{sample}.align.done", sample=SAMPLES),
-        # Masked CX reports - one per sample, gzipped
-        expand("results/alignments_smn1_masked/cx_report/.{sample}.cx.done", sample=SAMPLES),
-        # Chr5 splits for SMN2 locus analysis
         expand("results/alignments_smn1_masked/chr5_cx/{sample}_chr5.CX_report.txt", sample=SAMPLES),
-        # Genome-wide DMR results for all three contrasts
+        # DMR calling
         expand("results/dmr/dmr_{contrast}.rds", contrast=CONTRASTS),
-        # ChIPseeker annotation with GO/KEGG enrichment
-        expand("results/dmr_annotation/{contrast}_annotated.csv", contrast=CONTRASTS),
-        # Top 10 hypomethylated candidates per contrast (composite ranking)
-        expand("results/dmr_annotation/{contrast}_top10_hypo_v2.csv", contrast=CONTRASTS),
-        # Coverage QC - replicates vs pooled curves
-        "results/qc/coverage_4lines/coverage_4lines_per_condition.pdf",
-        # SMN locus plots - main figures for thesis
-        "results/smn2_locus_final/SMN_locus_masked_all_comparisons.pdf",
-        "results/smn2_locus_final/SMN_locus_masked_lowres_smooth.pdf",
-        # DMR plots and locus overlays
-        expand("results/dmr/plots/{contrast}_DMRs_per_chromosome.pdf", contrast=CONTRASTS),
-        expand("results/dmr/plots/{contrast}_methylation_difference.pdf", contrast=CONTRASTS),
-        "results/dmr/plots/annotated/RNA45SN2_all_contrasts.pdf",
-        "results/dmr/plots/annotated/MTA1-DT_all_contrasts.pdf",
+        "results/dmr/dmr_summary.tsv",
         # QC
         "results/dmr_qc/sample_PCA_12samples_chr1.pdf",
+        "results/qc/coverage_4lines/coverage_4lines_per_condition.pdf",
         "results/qc/additional_qc/mbias_CpG_all_samples.pdf",
-        # Lowres profiles
+        # DMR annotation
+        expand("results/dmr_annotation/{contrast}_annotated.csv", contrast=CONTRASTS),
+        "results/dmr_annotation/DMR_annotation_combined_count.pdf",
+        "results/dmr_overlap/dmr_upset_plot_5contrasts.pdf",
+        # Enrichment
+        expand("results/dmr_annotation/{contrast}_GO_BP_hypo_dotplot.pdf", contrast=CONTRASTS),
+        "results/dmr_annotation/msigdb_v2/ASO_specific_msigdb_all_combined.pdf",
+        "results/h3k9me2_overlap/h3k9me2_signal_boxplot.pdf",
+        "results/smn2_enhancer/smn2_h3k27ac_peak_summary.csv",
+        # TF motif
+        "results/tf_motif/motif_enrichment_volcano.pdf",
+        # Locus plots
         "results/lowres_profiles/lowres_allgroups_chrX_500kb.pdf",
         "results/lowres_profiles/lowres_allgroups_chr5_SMN2_10kb.pdf",
-        # Overlap and enrichment
-        "results/dmr_overlap/dmr_upset_plot.pdf",
-        "results/h3k9me2_overlap/h3k9me2_signal_boxplot.pdf",
-        "results/tf_motif/motif_enrichment_volcano.pdf",
-        "results/splice_junction/splice_junction_distance_density.pdf",
-        "results/dmr_annotation/msigdb_v2/ASO_specific_msigdb_all_combined.pdf",
-
+        expand("results/dmr/plots/annotated/{gene}_annotated.pdf",
+               gene=["MTA1-DT","SLC32A1","CHRNB3","GLRA4","GFRA2",
+                     "SEMA3C","PHACTR3","SOX5","RNF169","SMN2"]),
+        # SMN2 locus
+        "results/smn2_locus_final/SMN_locus_masked_all_comparisons.pdf",
+        "results/smn2_locus_final/SMN2_masked_vs_unmasked_comparison.pdf",
+        "results/smn2_local_dmr/SMN2_sensitive_DMRs_all_contrasts.csv",
+        # Validation
+        "results/dss_replicate/DSS_GO_dotplot.pdf",
+        # Summary plots
+        "results/tss_metaplot/TSS_metaplot.pdf",
+        "results/tss_metaplot/DMR_heatmap_top500_ASO_VPA_methdiff.pdf",
+        "results/manhattan/manhattan_ASO_CTRL_vs_Scramble_CTRL.pdf",
+        # Top10
+        "results/dmr_annotation/top20_hypo_ASO_by_methdiff.csv",
 
 rule trim_galore:
-    # Quality trimming and adapter removal. Q20 threshold, min 20bp post-trim.
-    # FastQC reports generated alongside trimmed reads.
     input:
         r1 = "data/raw/{sample}_1.fastq.gz",
         r2 = "data/raw/{sample}_2.fastq.gz",
@@ -86,12 +76,10 @@ rule trim_galore:
         r2  = "data/processed/{sample}_2_val_2.fq.gz",
         qc1 = "results/qc/trim/{sample}_1_fastqc.html",
         qc2 = "results/qc/trim/{sample}_2_fastqc.html",
-    log:
-        "logs/trim_{sample}.log"
+    log: "logs/trim_{sample}.log"
     threads: 4
     resources:
-        mem_mb  = 8000,
-        runtime = 120,
+        mem_mb=8000, runtime=120,
     shell:
         """
         trim_galore --paired --fastqc --cores {threads} \
@@ -100,88 +88,58 @@ rule trim_galore:
             {input.r1} {input.r2} 2>&1 | tee {log}
         """
 
-
 rule bismark_align:
-    # Bismark alignment to unmasked hg38 using Bowtie2 mode.
-    # Parameters: -N 1 (1 mismatch per seed), -L 20 (seed length),
-    # score_min L,0,-0.6 (allows ~18bp mismatches in 150bp reads).
-    # High memory required - bismark spawns 8 parallel instances x 2 threads.
     input:
         r1  = "data/processed/{sample}_1_val_1.fq.gz",
         r2  = "data/processed/{sample}_2_val_2.fq.gz",
         idx = "data/reference/Bisulfite_Genome",
     output:
-        bam    = "results/alignments/bs/{sample}_1_val_1_bismark_bt2_pe.bam",
-        report = "results/alignments/bs/{sample}_1_val_1_bismark_bt2_PE_report.txt",
-        done   = touch("results/alignments/bs/.{sample}.align.done"),
-    log:
-        "logs/align_{sample}.log"
+        bam  = "results/alignments/bs/{sample}_1_val_1_bismark_bt2_pe.bam",
+        done = touch("results/alignments/bs/.{sample}.align.done"),
+    log: "logs/align_{sample}.log"
     threads: 24
     resources:
-        mem_mb     = 200000,
-        runtime    = 1440,
-        constraint = "ehc",
+        mem_mb=200000, runtime=1440, constraint="ehc",
     shell:
         """
         bismark --genome data/reference \
-            --parallel 8 -p 2 \
-            -N 1 -L 20 --score-min L,0,-0.6 \
+            --parallel 8 -p 2 -N 1 -L 20 --score-min L,0,-0.6 \
             -1 {input.r1} -2 {input.r2} \
             -o results/alignments/bs/ \
             --temp_dir results/alignments/bs/tmp_{wildcards.sample} \
             2>&1 | tee {log}
         """
 
-
 rule dedup_and_extract:
-    # PCR deduplication followed by methylation extraction.
-    # --CX extracts all cytosine contexts; CHG/CHH deleted after to save space.
-    # --cytosine_report generates genome-wide CX report directly (no separate
-    # coverage2cytosine step needed).
     input:
         bam  = "results/alignments/bs/{sample}_1_val_1_bismark_bt2_pe.bam",
         done = "results/alignments/bs/.{sample}.align.done",
     output:
         cx = "results/alignments/bs/{sample}_CX_report.txt.CpG_report.txt.gz",
-    log:
-        "logs/dedup_{sample}.log"
+    log: "logs/dedup_{sample}.log"
     threads: 8
     resources:
-        mem_mb  = 64000,
-        runtime = 1440,
+        mem_mb=64000, runtime=1440,
     shell:
         """
         mkdir -p results/alignments/dedup
-
         deduplicate_bismark --paired --bam \
-            --output_dir results/alignments/dedup/ \
-            {input.bam} 2>&1 | tee {log}
-
+            --output_dir results/alignments/dedup/ {input.bam} 2>&1 | tee {log}
         DEDUP=results/alignments/dedup/{wildcards.sample}_1_val_1_bismark_bt2_pe.deduplicated.bam
-
         bismark_methylation_extractor \
-            --paired-end --CX --cytosine_report \
-            --parallel 8 \
+            --paired-end --CX --cytosine_report --parallel 8 \
             --genome_folder data/reference \
-            --output results/alignments/bs/ \
-            "$DEDUP" 2>&1 | tee -a {log}
-
-        # Clean up CHG/CHH files immediately to manage scratch space
+            --output results/alignments/bs/ "$DEDUP" 2>&1 | tee -a {log}
         rm -f results/alignments/bs/CHG_context_{wildcards.sample}*.txt
         rm -f results/alignments/bs/CHH_context_{wildcards.sample}*.txt
         """
 
-
 rule split_by_chr:
-    # Split genome-wide CpG report into per-chromosome files.
-    # CpG context only - DMRcaller reads these per chromosome for parallelised
-    # DMR calling (72 jobs: 24 chromosomes x 3 contrasts).
     input:
         cx = "results/alignments/bs/{sample}_CX_report.txt.CpG_report.txt.gz",
     output:
         done = touch("results/alignments/bs/by_chr/.{sample}.split.done"),
-    log:
-        "logs/split_{sample}.log"
+    log: "logs/split_{sample}.log"
     shell:
         """
         mkdir -p results/alignments/bs/by_chr
@@ -191,433 +149,250 @@ rule split_by_chr:
         gzip -f results/alignments/bs/by_chr/{wildcards.sample}_chr*.CpG_report.txt
         """
 
-
 rule mask_and_index:
-    # Mask SMN1 locus with Ns to prevent paralog read misassignment.
-    # SMN1 and SMN2 share ~99% sequence identity so reads can align to either.
-    # Coordinates: chr5:70,924,941-70,953,015 (hg38, 1-based).
-    # BED format is 0-based so we use 70924940.
-    # After masking, rebuild Bismark index for the masked reference.
     input:
         ref = "data/reference/hg38.fa",
     output:
         masked_fa = "data/reference_smn1_masked/hg38.fa",
         done      = touch("data/reference_smn1_masked/.index.done"),
-    log:
-        "logs/smn1_mask_index.log"
+    log: "logs/smn1_mask_index.log"
     threads: 8
     resources:
-        mem_mb  = 32000,
-        runtime = 240,
+        mem_mb=32000, runtime=240,
     shell:
         """
-        mkdir -p data/reference_smn1_masked
-        printf "chr5\t70924940\t70953015\tSMN1\n" \
-            > data/reference_smn1_masked/smn1_mask.bed
-
-        bedtools maskfasta \
-            -fi {input.ref} \
-            -bed data/reference_smn1_masked/smn1_mask.bed \
-            -fo {output.masked_fa}
-
-        samtools faidx {output.masked_fa}
-
-        bismark_genome_preparation \
-            --parallel {threads} \
-            data/reference_smn1_masked/ 2>&1 | tee {log}
+        bash scripts/align_01_mask_index.sh 2>&1 | tee {log}
         """
 
-
 rule bismark_align_masked:
-    # Bismark alignment to SMN1-masked hg38. Identical parameters to unmasked
-    # run so mapping efficiency is directly comparable (~80% in both cases).
-    # With SMN1 masked, reads from that region align unambiguously to SMN2.
     input:
         r1  = "data/processed/{sample}_1_val_1.fq.gz",
         r2  = "data/processed/{sample}_2_val_2.fq.gz",
         idx = "data/reference_smn1_masked/.index.done",
     output:
-        bam    = "results/alignments_smn1_masked/bs/{sample}_1_val_1_bismark_bt2_pe.bam",
-        report = "results/alignments_smn1_masked/bs/{sample}_1_val_1_bismark_bt2_PE_report.txt",
-        done   = touch("results/alignments_smn1_masked/bs/.{sample}.align.done"),
-    log:
-        "logs/smn1_masked_align_{sample}.log"
+        bam  = "results/alignments_smn1_masked/bs/{sample}_1_val_1_bismark_bt2_pe.bam",
+        done = touch("results/alignments_smn1_masked/bs/.{sample}.align.done"),
+    log: "logs/smn1_masked_align_{sample}.log"
     threads: 24
     resources:
-        mem_mb     = 200000,
-        runtime    = 2880,
-        constraint = "ehc",
+        mem_mb=200000, runtime=2880, constraint="ehc",
     shell:
         """
         bismark --genome data/reference_smn1_masked \
-            --parallel 8 -p 2 \
-            -N 1 -L 20 --score-min L,0,-0.6 \
+            --parallel 8 -p 2 -N 1 -L 20 --score-min L,0,-0.6 \
             -1 {input.r1} -2 {input.r2} \
             -o results/alignments_smn1_masked/bs/ \
             --temp_dir results/alignments_smn1_masked/bs/tmp_{wildcards.sample} \
             2>&1 | tee {log}
         """
 
-
 rule dedup_and_extract_masked:
-    # Dedup and extraction for masked alignment. Same approach as unmasked.
-    # Gzip runs synchronously (no & background) to avoid the race condition
-    # where cleanup deleted the source before gzip finished.
     input:
         bam  = "results/alignments_smn1_masked/bs/{sample}_1_val_1_bismark_bt2_pe.bam",
         done = "results/alignments_smn1_masked/bs/.{sample}.align.done",
     output:
         cx   = "results/alignments_smn1_masked/cx_report/{sample}.CX_report.txt.gz",
         done = touch("results/alignments_smn1_masked/cx_report/.{sample}.cx.done"),
-    log:
-        "logs/smn1_masked_dedup_{sample}.log"
+    log: "logs/smn1_masked_dedup_{sample}.log"
     threads: 8
     resources:
-        mem_mb  = 64000,
-        runtime = 1440,
+        mem_mb=64000, runtime=1440,
     shell:
         """
         mkdir -p results/alignments_smn1_masked/dedup \
                  results/alignments_smn1_masked/methylation
-
         deduplicate_bismark --paired --bam \
             --output_dir results/alignments_smn1_masked/dedup/ \
             {input.bam} 2>&1 | tee {log}
-
         DEDUP=results/alignments_smn1_masked/dedup/{wildcards.sample}_1_val_1_bismark_bt2_pe.deduplicated.bam
-
         bismark_methylation_extractor \
-            --paired-end --CX --cytosine_report \
-            --parallel 8 \
+            --paired-end --CX --cytosine_report --parallel 8 \
             --genome_folder data/reference_smn1_masked \
             --output results/alignments_smn1_masked/methylation/ \
             "$DEDUP" 2>&1 | tee -a {log}
-
-        # Gzip directly into cx_report - synchronous to prevent race condition
         CX_SRC=$(ls results/alignments_smn1_masked/methylation/{wildcards.sample}*CX_report.txt 2>/dev/null | head -1)
         gzip -c "$CX_SRC" > {output.cx}
-
-        # Clean up large intermediate files once CX report is saved
         rm -f results/alignments_smn1_masked/methylation/CHG_context_{wildcards.sample}*.txt
         rm -f results/alignments_smn1_masked/methylation/CHH_context_{wildcards.sample}*.txt
-        rm -f "$CX_SRC"
-        rm -f "$DEDUP"
+        rm -f "$CX_SRC" "$DEDUP"
         """
 
-
 rule split_chr5_masked:
-    # Extract chr5 CpG data from masked CX reports for SMN2 locus analysis.
-    # Only chr5 needed - SMN1 is at chr5:70.9Mb, SMN2 at chr5:70.0Mb.
     input:
         cx   = "results/alignments_smn1_masked/cx_report/{sample}.CX_report.txt.gz",
         done = "results/alignments_smn1_masked/cx_report/.{sample}.cx.done",
     output:
         chr5 = "results/alignments_smn1_masked/chr5_cx/{sample}_chr5.CX_report.txt",
-    log:
-        "logs/split_chr5_{sample}.log"
+    log: "logs/split_chr5_{sample}.log"
     shell:
         """
         mkdir -p results/alignments_smn1_masked/chr5_cx
         zcat {input.cx} | awk '$1=="chr5"' > {output.chr5} 2>&1 | tee {log}
         """
 
-
 rule dmr_calling:
-    # Genome-wide DMR calling using DMRcaller, per-chromosome approach.
-    # Parameters locked with Radu Zabet on 5 May 2026:
-    #   bins 300bp, minDiff>=0.20, p<=0.01, minCpGs>=4,
-    #   minGap=300bp (prevents infinite merge on VPA contrasts),
-    #   score test, CG only, 20 permutation seeds.
-    # Parallelised across 24 chromosomes x 3 contrasts = 72 SLURM jobs.
     input:
         expand("results/alignments/bs/by_chr/.{sample}.split.done", sample=SAMPLES),
     output:
         expand("results/dmr/dmr_{contrast}.rds", contrast=CONTRASTS),
         "results/dmr/dmr_summary.tsv",
-    log:
-        "logs/dmr_calling.log"
+    log: "logs/dmr_calling.log"
     threads: 4
     resources:
-        mem_mb  = 64000,
-        runtime = 360,
+        mem_mb=64000, runtime=360,
     shell:
         """
-        R_LIBS_USER={R_LIBS} {RSCRIPT} scripts/06_dmrcaller_by_chr.R \
-            2>&1 | tee {log}
-        R_LIBS_USER={R_LIBS} {RSCRIPT} scripts/06b_dmrcaller_combine_chr.R \
-            2>&1 | tee -a {log}
+        R_LIBS_USER={R_LIBS} {RSCRIPT} scripts/02_dmr_calling.R 2>&1 | tee {log}
+        R_LIBS_USER={R_LIBS} {RSCRIPT} scripts/03_dmr_combine.R 2>&1 | tee -a {log}
         """
 
+rule qc:
+    input:
+        expand("results/alignments/bs/by_chr/.{sample}.split.done", sample=SAMPLES),
+    output:
+        "results/dmr_qc/sample_PCA_12samples_chr1.pdf",
+        "results/dmr_qc/per_sample_methylation_violin_chr1.pdf",
+        "results/qc/coverage_4lines/coverage_4lines_per_condition.pdf",
+        "results/qc/additional_qc/mbias_CpG_all_samples.pdf",
+        "results/qc/additional_qc/bisulfite_conversion_efficiency.pdf",
+    log: "logs/qc.log"
+    resources:
+        mem_mb=64000, runtime=240,
+    shell:
+        """
+        R_LIBS_USER={R_LIBS} {RSCRIPT} scripts/01_qc.R 2>&1 | tee {log}
+        """
 
 rule dmr_annotate:
-    # ChIPseeker annotation of high-confidence DMRs (cytosinesCount >= 6).
-    # GO biological process and KEGG pathway enrichment via clusterProfiler.
-    # Benjamini-Hochberg correction, hyper and hypo DMRs analysed separately.
     input:
         expand("results/dmr/dmr_{contrast}.rds", contrast=CONTRASTS),
     output:
         expand("results/dmr_annotation/{contrast}_annotated.csv", contrast=CONTRASTS),
         expand("results/dmr_annotation/{contrast}_GO_BP_hypo_dotplot.pdf", contrast=CONTRASTS),
-        expand("results/dmr_annotation/{contrast}_top10_hypo_v2.csv", contrast=CONTRASTS),
-    log:
-        "logs/dmr_annotate.log"
+        "results/dmr_annotation/DMR_annotation_combined_count.pdf",
+        "results/dmr_overlap/dmr_upset_plot_5contrasts.pdf",
+    log: "logs/dmr_annotate.log"
     resources:
-        mem_mb  = 32000,
-        runtime = 120,
+        mem_mb=32000, runtime=180,
     shell:
         """
-        R_LIBS_USER={R_LIBS} {RSCRIPT} scripts/07_dmr_annotate.R \
-            2>&1 | tee {log}
-        R_LIBS_USER={R_LIBS} {RSCRIPT} scripts/09_top10_dmrs.R \
-            2>&1 | tee -a {log}
+        R_LIBS_USER={R_LIBS} {RSCRIPT} scripts/02_dmr_annotate.R 2>&1 | tee {log}
         """
 
+rule enrichment:
+    input:
+        expand("results/dmr_annotation/{contrast}_annotated.csv", contrast=CONTRASTS),
+    output:
+        "results/dmr_annotation/msigdb_v2/ASO_specific_msigdb_all_combined.pdf",
+        "results/h3k9me2_overlap/h3k9me2_signal_boxplot.pdf",
+        "results/smn2_enhancer/smn2_h3k27ac_peak_summary.csv",
+    log: "logs/enrichment.log"
+    resources:
+        mem_mb=32000, runtime=120,
+    shell:
+        """
+        R_LIBS_USER={R_LIBS} {RSCRIPT} scripts/03_enrichment.R 2>&1 | tee {log}
+        """
 
-rule dmr_qc:
-    # QC plots for DMR signal validation.
-    # PCA on condition methylation profiles, sample correlation heatmap,
-    # permutation null QQ plots (lambda values confirm signal above noise),
-    # DMR size distribution, CpG island context overlap.
+rule tf_motif:
     input:
         expand("results/dmr/dmr_{contrast}.rds", contrast=CONTRASTS),
     output:
-        "results/dmr_qc/sample_correlation_heatmap.pdf",
-        "results/dmr_qc/DMR_size_distribution.pdf",
-        "results/dmr_qc/CpG_island_overlap.pdf",
-    log:
-        "logs/dmr_qc.log"
+        "results/tf_motif/motif_enrichment_volcano.pdf",
+        "results/tf_motif/motif_enrichment_results.rds",
+    log: "logs/tf_motif.log"
     resources:
-        mem_mb  = 32000,
-        runtime = 60,
+        mem_mb=32000, runtime=120,
     shell:
         """
-        R_LIBS_USER={R_LIBS} {RSCRIPT} scripts/08_dmr_qc_analysis.R \
-            2>&1 | tee {log}
+        R_LIBS_USER={R_LIBS} {RSCRIPT} scripts/04_tf_motif.R 2>&1 | tee {log}
         """
 
-
-rule coverage_qc:
-    # Coverage retention curves showing per-replicate and pooled depth.
-    # Confirms 53.8% CpGs reach >=10x when replicates are pooled vs ~33% each.
+rule locus_plots:
     input:
-        expand("results/alignments/bs/by_chr/.{sample}.split.done", sample=SAMPLES),
+        "results/dmr/meth_pooled_cache.rds",
+        expand("results/dmr/dmr_{contrast}.rds", contrast=CONTRASTS),
     output:
-        "results/qc/coverage_4lines/coverage_4lines_per_condition.pdf",
-        "results/qc/coverage_4lines/coverage_4lines_per_condition_summary.tsv",
-    log:
-        "logs/coverage_qc.log"
+        expand("results/dmr/plots/annotated/{gene}_annotated.pdf",
+               gene=["MTA1-DT","SLC32A1","CHRNB3","GLRA4","GFRA2",
+                     "SEMA3C","PHACTR3","SOX5","RNF169","SMN2"]),
+        "results/lowres_profiles/lowres_allgroups_chrX_500kb.pdf",
+        "results/lowres_profiles/lowres_allgroups_chr5_SMN2_10kb.pdf",
+    log: "logs/locus_plots.log"
     resources:
-        mem_mb  = 32000,
-        runtime = 120,
+        mem_mb=64000, runtime=180,
     shell:
         """
-        R_LIBS_USER={R_LIBS} {RSCRIPT} scripts/10_coverage_qc.R \
-            2>&1 | tee {log}
+        R_LIBS_USER={R_LIBS} {RSCRIPT} scripts/05_locus_plots.R 2>&1 | tee {log}
         """
 
-
-rule smn_locus_plots:
-    # SMN locus methylation profiles for both masked and unmasked alignments.
-    # Uses DMRcaller plotLocalMethylationProfile (exon track, mean lines) and
-    # a lowres sliding window overview (500bp bins, ggplot2 smooth lines).
-    # Main thesis figures showing VPA demethylation effect at SMN2.
+rule smn2_locus:
     input:
         expand("results/alignments_smn1_masked/chr5_cx/{sample}_chr5.CX_report.txt", sample=SAMPLES),
         expand("results/alignments/bs/by_chr/.{sample}.split.done", sample=SAMPLES),
     output:
         "results/smn2_locus_final/SMN_locus_masked_all_comparisons.pdf",
-        "results/smn2_locus_final/SMN_locus_unmasked_all_comparisons.pdf",
-        "results/smn2_locus_final/SMN_locus_masked_lowres_smooth.pdf",
-        "results/smn2_locus_final/SMN_locus_unmasked_lowres_smooth.pdf",
-        "results/smn2_locus_final/SMN_weighted_mean_masked_v2.tsv",
-    log:
-        "logs/smn_locus_plots.log"
+        "results/smn2_locus_final/SMN2_masked_vs_unmasked_comparison.pdf",
+    log: "logs/smn2_locus.log"
     resources:
-        mem_mb  = 128000,
-        runtime = 120,
+        mem_mb=64000, runtime=180,
     shell:
         """
-        R_LIBS_USER={R_LIBS} {RSCRIPT} scripts/05_smn2_locus_final.R \
-            2>&1 | tee {log}
+        R_LIBS_USER={R_LIBS} {RSCRIPT} scripts/05_smn2_locus_final.R 2>&1 | tee {log}
         """
 
-rule dmr_plots:
-    # Per-chromosome DMR bar charts, methylation difference histograms,
-    # and locus overlay plots for all 5 contrasts.
+rule smn2_sensitive:
+    input:
+        expand("results/alignments_smn1_masked/chr5_cx/{sample}_chr5.CX_report.txt", sample=SAMPLES),
+        expand("results/dmr_annotation/{contrast}_annotated.csv", contrast=CONTRASTS),
+    output:
+        "results/smn2_local_dmr/SMN2_sensitive_DMRs_all_contrasts.csv",
+        "results/dmr_annotation/top20_hypo_ASO_by_methdiff.csv",
+    log: "logs/smn2_sensitive.log"
+    resources:
+        mem_mb=32000, runtime=120,
+    shell:
+        """
+        R_LIBS_USER={R_LIBS} {RSCRIPT} scripts/07_smn2_sensitive.R 2>&1 | tee {log}
+        """
+
+rule dss_validation:
+    input:
+        expand("results/alignments/bs/by_chr/.{sample}.split.done", sample=SAMPLES),
+    output:
+        "results/dss_replicate/DSS_GO_dotplot.pdf",
+    log: "logs/dss_validation.log"
+    resources:
+        mem_mb=64000, runtime=240,
+    shell:
+        """
+        R_LIBS_USER={R_LIBS} {RSCRIPT} scripts/08_dss_validation.R 2>&1 | tee {log}
+        """
+
+rule manhattan:
     input:
         expand("results/dmr/dmr_{contrast}.rds", contrast=CONTRASTS),
-        "results/dmr/meth_pooled_cache.rds",
     output:
-        expand("results/dmr/plots/{contrast}_DMRs_per_chromosome.pdf", contrast=CONTRASTS),
-        expand("results/dmr/plots/{contrast}_methylation_difference.pdf", contrast=CONTRASTS),
-    log:
-        "logs/dmr_plots.log"
+        expand("results/manhattan/manhattan_{contrast}.pdf", contrast=CONTRASTS),
+    log: "logs/manhattan.log"
     resources:
-        mem_mb  = 64000,
-        runtime = 120,
+        mem_mb=32000, runtime=60,
     shell:
         """
-        R_LIBS_USER={R_LIBS} {RSCRIPT} scripts/07b_dmr_plots.R \
-            2>&1 | tee {log}
+        R_LIBS_USER={R_LIBS} {RSCRIPT} scripts/09_manhattan.R 2>&1 | tee {log}
         """
 
-
-rule dmr_locus_plots:
-    # Annotated locus overlay plots for RNA45SN2, MTA1-DT, MYO1D
-    # across all 5 contrasts. Uses plotLocalMethylationProfile with
-    # exon annotations and DMR highlight boxes.
-    input:
-        expand("results/dmr/dmr_{contrast}.rds", contrast=CONTRASTS),
-        "results/dmr/meth_pooled_cache.rds",
-    output:
-        "results/dmr/plots/annotated/RNA45SN2_all_contrasts.pdf",
-        "results/dmr/plots/annotated/MTA1-DT_all_contrasts.pdf",
-        "results/dmr/plots/annotated/MYO1D_all_contrasts.pdf",
-        "results/dmr/plots/annotated/SMN2_all_contrasts.pdf",
-    log:
-        "logs/dmr_locus_plots.log"
-    resources:
-        mem_mb  = 64000,
-        runtime = 120,
-    shell:
-        """
-        R_LIBS_USER={R_LIBS} {RSCRIPT} scripts/07c_dmr_locus_plots.R \
-            2>&1 | tee {log}
-        """
-
-
-rule lowres_profiles:
-    # Low-resolution genome browser tracks for chr1, chrX, chr5/SMN2.
-    # All 4 conditions overlaid + per-contrast comparisons.
-    # chrX included because ASO shows 620 DMR hotspot (18% of all ASO DMRs).
+rule tss_heatmap:
     input:
         "results/dmr/meth_pooled_cache.rds",
-    output:
-        "results/lowres_profiles/lowres_allgroups_chrX_500kb.pdf",
-        "results/lowres_profiles/lowres_allgroups_chr5_SMN2_10kb.pdf",
-        "results/lowres_profiles/lowres_allgroups_chr1_1Mb.pdf",
-    log:
-        "logs/lowres_profiles.log"
-    resources:
-        mem_mb  = 64000,
-        runtime = 120,
-    shell:
-        """
-        R_LIBS_USER={R_LIBS} {RSCRIPT} scripts/15_lowres_methylation_profile.R \
-            2>&1 | tee {log}
-        """
-
-
-rule upset_overlap:
-    # UpSet plots showing DMR overlap across contrasts.
-    # 3-contrast main figure (151 ASO-specific DMRs) +
-    # 5-contrast supplementary figure.
-    input:
         expand("results/dmr/dmr_{contrast}.rds", contrast=CONTRASTS),
-        "results/dmr/dmr_ASO_specific.rds",
     output:
-        "results/dmr_overlap/dmr_upset_plot.pdf",
-        "results/dmr_overlap/dmr_upset_plot_5contrasts.pdf",
-        "results/dmr_overlap/dmr_overlap_summary.tsv",
-    log:
-        "logs/upset_overlap.log"
+        "results/tss_metaplot/TSS_metaplot.pdf",
+        "results/tss_metaplot/DMR_heatmap_top500_ASO_VPA_methdiff.pdf",
+    log: "logs/tss_heatmap.log"
     resources:
-        mem_mb  = 32000,
-        runtime = 30,
+        mem_mb=64000, runtime=180,
     shell:
         """
-        R_LIBS_USER={R_LIBS} {RSCRIPT} scripts/12_upset_dmr_intersections.R \
-            2>&1 | tee {log}
-        """
-
-
-rule h3k9me2_overlap:
-    # H3K9me2 signal enrichment at ASO DMRs vs matched background.
-    # External ChIP-seq data: Marasco et al. 2022 Cell (GSE167762).
-    # Validates kinetic coupling model at SMN2 locus.
-    input:
-        expand("results/dmr/dmr_{contrast}.rds", contrast=CONTRASTS),
-        "results/dmr/dmr_ASO_specific.rds",
-    output:
-        "results/h3k9me2_overlap/h3k9me2_signal_boxplot.pdf",
-        "results/h3k9me2_overlap/h3k9me2_signal_violin.pdf",
-        "results/h3k9me2_overlap/h3k9me2_signal_summary.tsv",
-    log:
-        "logs/h3k9me2_overlap.log"
-    resources:
-        mem_mb  = 32000,
-        runtime = 60,
-    shell:
-        """
-        R_LIBS_USER={R_LIBS} {RSCRIPT} scripts/11_h3k9me2_overlap.R \
-            2>&1 | tee {log}
-        """
-
-
-rule tf_motif_enrichment:
-    # TF motif enrichment on ASO-specific DMRs using monaLisa + JASPAR2020.
-    # Negative result: min padj=0.18 across 746 motifs tested.
-    # Rules out TF binding site disruption as mechanism for neural pathway signal.
-    input:
-        "results/dmr/dmr_ASO_specific.rds",
-    output:
-        "results/tf_motif/motif_enrichment_results.rds",
-        "results/tf_motif/motif_enrichment_volcano.pdf",
-        "results/tf_motif/motif_enrichment_top20_nominal.pdf",
-    log:
-        "logs/tf_motif.log"
-    resources:
-        mem_mb  = 32000,
-        runtime = 60,
-    shell:
-        """
-        R_LIBS_USER={R_LIBS} {RSCRIPT} scripts/16_tf_motif_enrichment.R \
-            2>&1 | tee {log}
-        R_LIBS_USER={R_LIBS} {RSCRIPT} scripts/16b_tf_motif_plots.R \
-            2>&1 | tee -a {log}
-        """
-
-
-rule splice_junction_proximity:
-    # Tests whether ASO-specific DMRs are enriched near splice junctions.
-    # Negative result: median distance 53,879bp vs 28,712bp background
-    # (Wilcoxon p=0.939). Rules out genome-wide kinetic coupling mechanism.
-    input:
-        "results/dmr/dmr_ASO_specific.rds",
-        "data/reference/splice_sites_hg38_protein_coding.bed",
-    output:
-        "results/splice_junction/splice_junction_distance_density.pdf",
-        "results/splice_junction/splice_junction_summary.csv",
-    log:
-        "logs/splice_junction.log"
-    resources:
-        mem_mb  = 16000,
-        runtime = 30,
-    shell:
-        """
-        R_LIBS_USER={R_LIBS} {RSCRIPT} scripts/17_splice_junction_proximity.R \
-            2>&1 | tee {log}
-        """
-
-
-rule msigdb_enrichment:
-    # MSigDB gene set enrichment for all 5 contrasts + ASO-specific DMRs.
-    # Neural, synaptic, chromatin and splicing gene sets tested.
-    # Confirms VPA shows no neural enrichment while ASO shows consistent
-    # neural pathway signal across two independent databases.
-    input:
-        expand("results/dmr/dmr_{contrast}.rds", contrast=CONTRASTS),
-        "results/dmr/dmr_ASO_specific.rds",
-    output:
-        "results/dmr_annotation/msigdb_v2/ASO_specific_msigdb_all_combined.pdf",
-        "results/dmr_annotation/msigdb_v2/ASO_specific_neural_all.tsv",
-    log:
-        "logs/msigdb_enrichment.log"
-    resources:
-        mem_mb  = 32000,
-        runtime = 60,
-    shell:
-        """
-        R_LIBS_USER={R_LIBS} {RSCRIPT} scripts/14_msigdb_enrichment_all.R \
-            2>&1 | tee {log}
+        R_LIBS_USER={R_LIBS} {RSCRIPT} scripts/06_tss_heatmap.R 2>&1 | tee {log}
         """
