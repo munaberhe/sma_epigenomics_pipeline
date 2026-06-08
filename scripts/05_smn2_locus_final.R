@@ -71,16 +71,19 @@ COMPARISONS <- list(
 
 NEEDED <- unique(unlist(lapply(COMPARISONS, function(x) c(x$cond1, x$cond2))))
 
-# Sensitive DMRs found at SMN2 at 2% threshold (ASO_VPA vs Scramble_VPA only)
 SENSITIVE_DMRS <- list(
   ASO_vs_Scramble_VPA = GRanges(
-    seqnames = "chr5",
-    ranges   = IRanges(
-      start = c(70074938, 70088438),
-      end   = c(70074987, 70088487)
-    ),
+    seqnames   = "chr5",
+    ranges     = IRanges(start=c(70074938, 70088438), end=c(70074987, 70088487)),
     regionType = c("loss", "gain"),
     pValue     = c(0.037, 0.033)
+  ),
+  VPA_vs_Scramble_CTRL = GRanges(
+    seqnames   = "chr5",
+    ranges     = IRanges(start=c(70046438, 70074838, 70079338),
+                         end  =c(70046487, 70074887, 70079387)),
+    regionType = c("gain", "gain", "gain"),
+    pValue     = c(0.011, 0.002, 0.011)
   )
 )
 
@@ -198,7 +201,9 @@ for (alignment in c("masked","unmasked")) {
         bg="white", col.axis="black", col.lab="black",
         col.main="black", fg="black")
     if(alignment=="unmasked") plot_one(pooled, ct, "SMN1")
-    dmrs_arg <- if(!is.null(SENSITIVE_DMRS[[ct$name]])) SENSITIVE_DMRS[[ct$name]] else NULL
+    ct_key <- gsub("ASO_VPA_vs_Scramble_VPA", "ASO_vs_Scramble_VPA",
+                   gsub("Scramble_VPA_vs_Scramble_CTRL", "VPA_vs_Scramble_CTRL", ct$name))
+    dmrs_arg <- if(!is.null(SENSITIVE_DMRS[[ct_key]])) SENSITIVE_DMRS[[ct_key]] else NULL
     plot_one(pooled, ct, "SMN2", dmrs=dmrs_arg)
     dev.off()
   }
@@ -216,7 +221,9 @@ for (alignment in c("masked","unmasked")) {
       col.main="black", fg="black")
   for (ct in COMPARISONS) {
     if(alignment=="unmasked") plot_one(pooled, ct, "SMN1")
-    dmrs_arg <- if(!is.null(SENSITIVE_DMRS[[ct$name]])) SENSITIVE_DMRS[[ct$name]] else NULL
+    ct_key <- gsub("ASO_VPA_vs_Scramble_VPA", "ASO_vs_Scramble_VPA",
+                   gsub("Scramble_VPA_vs_Scramble_CTRL", "VPA_vs_Scramble_CTRL", ct$name))
+    dmrs_arg <- if(!is.null(SENSITIVE_DMRS[[ct_key]])) SENSITIVE_DMRS[[ct_key]] else NULL
     plot_one(pooled, ct, "SMN2", dmrs=dmrs_arg)
   }
   dev.off()
