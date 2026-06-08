@@ -19,19 +19,19 @@ WIN_SIZE <- 300
 
 CONTRASTS <- list(
   list(name="ASO_CTRL_vs_Scramble_CTRL",
-       cond_a="ASO_CTRL", cond_b="Scramble_CTRL",
+       cond_a="Scramble_CTRL", cond_b="ASO_CTRL",
        label="ASO effect (CTRL background)"),
   list(name="ASO_VPA_vs_Scramble_CTRL",
-       cond_a="ASO_VPA", cond_b="Scramble_CTRL",
+       cond_a="Scramble_CTRL", cond_b="ASO_VPA",
        label="Combination vs baseline"),
   list(name="ASO_VPA_vs_ASO_CTRL",
-       cond_a="ASO_VPA", cond_b="ASO_CTRL",
+       cond_a="ASO_CTRL", cond_b="ASO_VPA",
        label="VPA effect on ASO background"),
   list(name="ASO_VPA_vs_Scramble_VPA",
-       cond_a="ASO_VPA", cond_b="Scramble_VPA",
+       cond_a="Scramble_VPA", cond_b="ASO_VPA",
        label="ASO effect on VPA background"),
   list(name="Scramble_VPA_vs_Scramble_CTRL",
-       cond_a="Scramble_VPA", cond_b="Scramble_CTRL",
+       cond_a="Scramble_CTRL", cond_b="Scramble_VPA",
        label="VPA effect (HDAC inhibitor)")
 )
 
