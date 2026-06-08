@@ -90,12 +90,9 @@ p <- ggplot(prof_df, aes(x=pos, y=meth, colour=condition)) +
   theme_classic(base_size=11) +
   theme(plot.title=element_text(face="bold"), legend.position="right")
 
-, p,
-       width=9, height=5, dpi=150, bg="white")
-message("saved as PNG")
-# Also save PDF via tmp workaround
+
+# Save via tmp to avoid container write issues
 tmp_pdf <- '/tmp/TSS_metaplot.pdf'
 ggsave(tmp_pdf, p, width=9, height=5)
 system(paste('cp', tmp_pdf, file.path(OUT, "TSS_metaplot.pdf")))
-message("saved: TSS_metaplot.pdf")
 message("saved: TSS_metaplot.pdf")

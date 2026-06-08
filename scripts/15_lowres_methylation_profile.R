@@ -20,6 +20,12 @@ GROUP_COLS <- c(
   Scramble_VPA  = "#F0A500",
   Scramble_CTRL = "#6B7280"
 )
+GROUP_LTY <- c(
+  ASO_VPA       = 1,
+  ASO_CTRL      = 1,
+  Scramble_VPA  = 2,
+  Scramble_CTRL = 2
+)
 GROUPS <- c("ASO_VPA", "ASO_CTRL", "Scramble_VPA", "Scramble_CTRL")
 
 REGIONS <- list(
@@ -86,9 +92,9 @@ for (reg in REGIONS) {
        main=reg$title, cex.main=0.9, font.main=2)
   for (g in GROUPS) {
     d <- prof_list[[g]]
-    if (nrow(d) > 0) lines(d$pos, d$meth, col=GROUP_COLS[g], lwd=1.5)
+    if (nrow(d) > 0) lines(d$pos, d$meth, col=GROUP_COLS[g], lwd=1.8, lty=GROUP_LTY[g])
   }
-  legend("topright", legend=GROUPS, col=GROUP_COLS[GROUPS],
+  legend("topright", legend=GROUPS, col=GROUP_COLS[GROUPS], lty=GROUP_LTY[GROUPS],
          lwd=1.5, bty="n", cex=0.85, xpd=TRUE, inset=c(-0.15,0))
   dev.off()
   message("  saved: ", basename(out_pdf))
@@ -106,11 +112,12 @@ for (reg in REGIONS) {
          cex.main=0.9, font.main=2)
     for (g in c(ct$g1, ct$g2)) {
       d <- prof_list[[g]]
-      if (nrow(d) > 0) lines(d$pos, d$meth, col=GROUP_COLS[g], lwd=1.5)
+      if (nrow(d) > 0) lines(d$pos, d$meth, col=GROUP_COLS[g], lwd=1.8, lty=GROUP_LTY[g])
     }
     legend("topright", legend=c(ct$g1, ct$g2),
            col=GROUP_COLS[c(ct$g1, ct$g2)],
-           lwd=1.5, bty="n", cex=0.85)
+           lty=GROUP_LTY[c(ct$g1, ct$g2)],
+           lwd=1.8, bty="n", cex=0.85)
     dev.off()
   }
 }
