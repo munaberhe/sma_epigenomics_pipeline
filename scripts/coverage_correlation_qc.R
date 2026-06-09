@@ -69,3 +69,53 @@ dev.off()
 message("Saved: radu_spatial_correlation_pooled.pdf")
 
 message("All done. Outputs in: ", OUT_DIR)
+
+# Plot 3 — per-condition: replicates vs pooled coverage
+message("Plotting per-condition replicate vs pooled coverage...")
+for (sample in SAMPLES) {
+  pdf(file.path(OUT_DIR, paste0("radu_coverage_replicates_", sample, ".pdf")),
+      width = 9, height = 6)
+  par(mar = c(4, 4, 3, 1) + 0.1)
+  rep_cols <- c("#E69F00", "#56B4E9", "#009E73")
+  cov_pooled <- computeMethylationDataCoverage(methylationDataPooled[[sample]],
+                  context = "CG", breaks = breaks)
+  plot(breaks, cov_pooled, type = "l", col = "#000000", lwd = 3,
+       ylim = c(0, 1), xlab = "Coverage depth", ylab = "Proportion of CpGs",
+       main = paste0("CpG Coverage: ", sample, " — replicates vs pooled (chr1)"),
+       lty = 1)
+  for (r in reps) {
+    if (!is.null(meth_list[[sample]][[r]])) {
+      cov_r <- computeMethylationDataCoverage(meth_list[[sample]][[r]],
+                 context = "CG", breaks = breaks)
+      lines(breaks, cov_r, col = rep_cols[r], lwd = 1.5, lty = 2)
+    }
+  }
+  abline(v = c(5, 10), lty = 2, col = "grey50")
+  legend("topright",
+         legend = c("Pooled", paste0("Rep ", reps)),
+         col = c("#000000", rep_cols[reps]),
+         lwd = c(3, rep(1.5, length(reps))),
+         lty = c(1, rep(2, length(reps))), bty = "n")
+  dev.off()
+  message("Saved: radu_coverage_replicates_", sample, ".pdf")
+}
+
+# Plot 4 — spatial correlation per condition
+message("Plotting spatial correlation per condition...")
+pdf(file.path(OUT_DIR, "radu_spatial_correlation_per_condition.pdf"),
+    width = 9, height = 6)
+par(mar = c(4, 4, 3, 1) + 0.1)
+plot(distances, rep(NA, length(distances)), type = "n",
+     ylim = c(0, 1), xlab = "Distance (bp)", ylab = "Correlation",
+     main = "CpG Spatial Correlation per condition (chr1, pooled replicates)",
+     log = "x")
+for (i in seq_along(SAMPLES)) {
+  cor_i <- computeMethylationDataSpatialCorrelation(
+    methylationDataPooled[[SAMPLES[i]]], context = "CG", distances = distances)
+  lines(distances, cor_i, col = cbbPalette[i], lwd = 2)
+}
+legend("topright", legend = SAMPLES,
+       col = cbbPalette[seq_along(SAMPLES)], lwd = 2, bty = "n")
+dev.off()
+message("Saved: radu_spatial_correlation_per_condition.pdf")
+message("All extra plots done.")

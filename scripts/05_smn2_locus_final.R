@@ -50,41 +50,46 @@ EXONS <- list(
 )
 
 COMPARISONS <- list(
-  list(name="ASO_vs_Scramble_CTRL",
+  list(name="ASO_CTRL_vs_Scramble_CTRL",
        cond1="ASO_CTRL", cond2="Scramble_CTRL",
        label="ASO effect (CTRL background)"),
-  list(name="VPA_vs_Scramble_CTRL",
+  list(name="Scramble_VPA_vs_Scramble_CTRL",
        cond1="Scramble_VPA", cond2="Scramble_CTRL",
        label="VPA effect (CTRL background)"),
   list(name="ASO_VPA_vs_Scramble_CTRL",
        cond1="ASO_VPA", cond2="Scramble_CTRL",
        label="Combined vs CTRL"),
-  list(name="VPA_vs_CTRL_ASO",
+  list(name="ASO_VPA_vs_ASO_CTRL",
        cond1="ASO_CTRL", cond2="ASO_VPA",
        label="VPA effect (ASO background)"),
-  list(name="ASO_vs_Scramble_VPA",
+  list(name="ASO_VPA_vs_Scramble_VPA",
        cond1="ASO_VPA", cond2="Scramble_VPA",
        label="ASO effect (VPA background)")
 )
 
 NEEDED <- unique(unlist(lapply(COMPARISONS, function(x) c(x$cond1, x$cond2))))
 
-# pre-called SMN2 sensitive DMRs (for visual overlay only)
-SENSITIVE_DMRS <- list(
-  ASO_vs_Scramble_VPA = GRanges(
-    seqnames   = "chr5",
-    ranges     = IRanges(start=c(70074938, 70088438), end=c(70074987, 70088487)),
-    regionType = c("loss", "gain"),
-    pValue     = c(0.037, 0.033)
-  ),
-  VPA_vs_Scramble_CTRL = GRanges(
-    seqnames   = "chr5",
-    ranges     = IRanges(start=c(70046438, 70074838, 70079338),
-                         end  =c(70046487, 70074887, 70079387)),
-    regionType = c("gain", "gain", "gain"),
-    pValue     = c(0.011, 0.002, 0.011)
-  )
-)
+# load sensitive DMRs from script 07 output
+sensitive_csv <- "results/smn2_local_dmr/SMN2_sensitive_DMRs_all_contrasts.csv"
+SENSITIVE_DMRS <- list()
+if (file.exists(sensitive_csv)) {
+  sdf <- read.csv(sensitive_csv)
+  for (ct in unique(sdf$contrast)) {
+    sub <- sdf[sdf$contrast == ct, ]
+    if (nrow(sub) > 0) {
+      key <- ct  # keep original contrast name matching CSV
+      SENSITIVE_DMRS[[key]] <- GRanges(
+        seqnames   = sub$seqnames,
+        ranges     = IRanges(start=sub$start, end=sub$end),
+        regionType = sub$regionType,
+        pValue     = sub$pValue
+      )
+    }
+  }
+  message("Loaded ", length(SENSITIVE_DMRS), " contrast DMR sets from CSV")
+} else {
+  message("WARNING: sensitive DMR CSV not found, no overlays will be drawn")
+}
 
 COND_COLOURS <- c(
   ASO_CTRL      = "#1B4F8A",
@@ -199,8 +204,7 @@ for (alignment in c("masked","unmasked")) {
         bg="white", col.axis="black", col.lab="black",
         col.main="black", fg="black")
     if(alignment=="unmasked") plot_one(pooled, ct, "SMN1")
-    ct_key <- gsub("ASO_VPA_vs_Scramble_VPA", "ASO_vs_Scramble_VPA",
-                   gsub("Scramble_VPA_vs_Scramble_CTRL", "VPA_vs_Scramble_CTRL", ct$name))
+    ct_key <- ct$name
     dmrs_arg <- if(!is.null(SENSITIVE_DMRS[[ct_key]])) SENSITIVE_DMRS[[ct_key]] else NULL
     plot_one(pooled, ct, "SMN2", dmrs=dmrs_arg)
     dev.off()
@@ -219,8 +223,7 @@ for (alignment in c("masked","unmasked")) {
       col.main="black", fg="black")
   for (ct in COMPARISONS) {
     if(alignment=="unmasked") plot_one(pooled, ct, "SMN1")
-    ct_key <- gsub("ASO_VPA_vs_Scramble_VPA", "ASO_vs_Scramble_VPA",
-                   gsub("Scramble_VPA_vs_Scramble_CTRL", "VPA_vs_Scramble_CTRL", ct$name))
+    ct_key <- ct$name
     dmrs_arg <- if(!is.null(SENSITIVE_DMRS[[ct_key]])) SENSITIVE_DMRS[[ct_key]] else NULL
     plot_one(pooled, ct, "SMN2", dmrs=dmrs_arg)
   }

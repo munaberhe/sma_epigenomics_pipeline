@@ -204,7 +204,7 @@ ggsave(file.path(OUT, "bock_panelC_cpg_bar.pdf"),
        p_cpg_bar, width=8, height=4, device=cairo_pdf)
 
 # heatmap: enlarge canvas so the cell labels and colour key are readable
-pdf(file.path(OUT, "bock_panelC_cpg_heatmap.pdf"), width=9, height=5)
+pdf(file.path(OUT, "bock_panelC_cpg_heatmap.pdf"), width=7, height=4)
 print(levelplot(t(log2_cpg),
                 at=custom_at, col.regions=cols_contrast,
                 main=list(label="CpG context log2(obs/exp)", cex=0.95),
@@ -238,7 +238,7 @@ ggsave(file.path(OUT, "bock_panelD_feat_bar.pdf"),
        p_feat_bar, width=8, height=4, device=cairo_pdf)
 
 # wider heatmap (7 categories needs more horizontal space)
-pdf(file.path(OUT, "bock_panelD_feat_heatmap.pdf"), width=11, height=5)
+pdf(file.path(OUT, "bock_panelD_feat_heatmap.pdf"), width=9, height=4)
 print(levelplot(t(log2_feat),
                 at=custom_at, col.regions=cols_contrast,
                 main=list(label="Genomic feature log2(obs/exp)", cex=0.95),

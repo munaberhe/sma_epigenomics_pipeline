@@ -48,9 +48,9 @@ message("top 20 motifs:")
 print(head(report_df[, c("target","raw.score","p.value")], 20),
       row.names=FALSE)
 
-# top10 PWMEnrich-native report for sanity check
-pdf(file.path(OUT_DIR, "pwmenrich_top10_report.pdf"), width=12, height=8)
-plot(report[1:10])
+N <- 30
+pdf(file.path(OUT_DIR, "pwmenrich_top30_report.pdf"), width=11, height=max(8, N * 0.35))
+plot(report[1:N])
 dev.off()
 
 # ---- volcano ----
@@ -70,14 +70,15 @@ top_neural  <- head(report_df[report_df$highlight, ][
                     order(report_df$p.value[report_df$highlight]), ], 5)
 label_df <- unique(rbind(top_overall, top_neural))
 
-p_vol <- ggplot(report_df, aes(x=raw.score, y=neg_log_p)) +
+
+p_vol <- ggplot(report_df, aes(x=pmax(raw.score, 0.01), y=neg_log_p)) +
   geom_point(aes(colour=highlight), size=1.4, alpha=0.6) +
   scale_colour_manual(values=c("FALSE"="#cccccc","TRUE"="#2E9B6F"),
                       labels=c("other","neural TFs"),
                       name=NULL) +
   geom_hline(yintercept=-log10(0.05), linetype="dashed",
              colour="grey50", linewidth=0.5) +
-  geom_text_repel(data=label_df, aes(label=target, colour=highlight),
+  geom_text_repel(data=label_df, aes(x=pmax(raw.score, 0.01), label=target, colour=highlight),
                   size=3, max.overlaps=Inf, min.segment.length=0,
                   segment.colour="grey60", segment.size=0.3,
                   box.padding=0.4, point.padding=0.3,
@@ -87,8 +88,9 @@ p_vol <- ggplot(report_df, aes(x=raw.score, y=neg_log_p)) +
   theme_classic(base_size=11) +
   theme(plot.title=element_text(face="bold"),
         legend.position="top") +
+  scale_x_log10() +
   labs(title="Motif enrichment at ASO DMRs: no significant hits",
-       subtitle=paste0("PWMEnrich MotifDb.Hsap, n=", length(dmr_aso),
+       subtitle=paste0("PWMEnrich MotifDb.Hsap (x-axis log10), n=", length(dmr_aso),
                        " DMRs. Labels: top 8 by p plus neural TFs."),
        x="Raw enrichment score",
        y="-log10(p-value)")

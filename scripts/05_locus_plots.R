@@ -28,28 +28,42 @@ GROUP_LTY <- c(
 )
 GROUPS <- c("ASO_VPA", "ASO_CTRL", "Scramble_VPA", "Scramble_CTRL")
 
+# TIER 1: chromosome overviews (250 kb bins) — chosen by DMR density from chr_dmr_density_50kb.csv
+# chrX=3.97/Mb (top), chr8=1.74/Mb (CHRNB3), chr13=0.88/Mb (lncRNA hotspot),
+# chr14=1.02/Mb (MTA1-DT), chr5=0.84/Mb (SMN2, primary biological target)
 REGIONS <- list(
-  list(region=GRanges("chrX",  IRanges(1, 155270560)),
-       window=50000,  label="chrX_50kb",
-       title="CpG methylation chrX (50 kb bins) — ASO hotspot (3.97 DMRs/Mb)"),
-  list(region=GRanges("chrX",  IRanges(10000000, 20000000)),
-       window=50000,   label="chrX_10_20Mb_50kb",
-       title="CpG methylation chrX:10-20 Mb (50 kb bins) — highest ASO density"),
-  list(region=GRanges("chr5",  IRanges(1, 181538259)),
-       window=50000,  label="chr5_50kb",
-       title="CpG methylation chr5 (50 kb bins)"),
-  list(region=GRanges("chr5",  IRanges(69000000, 71500000)),
-       window=10000,   label="chr5_SMN2_10kb",
-       title="CpG methylation chr5:69-71.5 Mb (10 kb bins) — SMN2 locus"),
-  list(region=GRanges("chr4",  IRanges(1, 190214555)),
-       window=50000,  label="chr4_50kb",
-       title="CpG methylation chr4 (50 kb bins) — autosome outlier"),
+  list(region=GRanges("chrX",  IRanges(1, 156040895)),
+       window=250000, label="chrX_250kb",
+       title="CpG methylation chrX (250 kb bins) — top DMR density 3.97/Mb"),
   list(region=GRanges("chr8",  IRanges(1, 145138636)),
-       window=50000,  label="chr8_50kb",
-       title="CpG methylation chr8 (50 kb bins) — highest autosome density"),
+       window=250000, label="chr8_250kb",
+       title="CpG methylation chr8 (250 kb bins) — 1.74 DMRs/Mb, CHRNB3 locus"),
+  list(region=GRanges("chr13", IRanges(1, 114364328)),
+       window=250000, label="chr13_250kb",
+       title="CpG methylation chr13 (250 kb bins) — lncRNA hotspot LINC00391/LMO7"),
+  list(region=GRanges("chr14", IRanges(1, 107043718)),
+       window=250000, label="chr14_250kb",
+       title="CpG methylation chr14 (250 kb bins) — 1.02 DMRs/Mb, MTA1-DT locus"),
+  list(region=GRanges("chr5",  IRanges(1, 181538259)),
+       window=250000, label="chr5_250kb",
+       title="CpG methylation chr5 (250 kb bins) — SMN2 primary target"),
+
+  # TIER 2: regional zooms (25 kb bins) — centred on known hotspots
+  list(region=GRanges("chrX",  IRanges(5000000, 30000000)),
+       window=25000,  label="chrX_5_30Mb_25kb",
+       title="CpG methylation chrX:5-30 Mb (25 kb bins) — ASO DMR cluster"),
+  list(region=GRanges("chr8",  IRanges(38000000, 55000000)),
+       window=25000,  label="chr8_CHRNB3_25kb",
+       title="CpG methylation chr8:38-55 Mb (25 kb bins) — CHRNB3 region"),
   list(region=GRanges("chr13", IRanges(55000000, 85000000)),
-       window=50000,  label="chr13_60_80Mb_50kb",
-       title="CpG methylation chr13:55-85 Mb (50 kb bins) — lncRNA hotspot")
+       window=25000,  label="chr13_hotspot_25kb",
+       title="CpG methylation chr13:55-85 Mb (25 kb bins) — LINC00391/LMO7 hotspot"),
+  list(region=GRanges("chr14", IRanges(100000000, 115000000)),
+       window=25000,  label="chr14_MTA1DT_25kb",
+       title="CpG methylation chr14:100-115 Mb (25 kb bins) — MTA1-DT region"),
+  list(region=GRanges("chr5",  IRanges(67000000, 73000000)),
+       window=25000,  label="chr5_SMN2_25kb",
+       title="CpG methylation chr5:67-73 Mb (25 kb bins) — SMN2 region")
 )
 
 CONTRASTS <- list(
@@ -105,27 +119,6 @@ for (reg in REGIONS) {
   dev.off()
   message("  saved: ", basename(out_pdf))
 
-  # pairwise contrast plots
-  for (ct in CONTRASTS) {
-    out_pdf <- file.path(OUT_DIR,
-      paste0("lowres_", ct$tag, "_", reg$label, ".pdf"))
-    pdf(out_pdf, width=10, height=4)
-    par(mar=c(4,4,3,2)+0.1, bg="white", col.axis="black",
-        col.lab="black", col.main="black", fg="black")
-    plot(NULL, xlim=x_range, ylim=c(0,1),
-         xlab="genomic coordinate", ylab="CpG methylation proportion",
-         main=sprintf("%s\n%s (%d kb bins)", ct$title, reg$label, reg$window/1000),
-         cex.main=0.9, font.main=2)
-    for (g in c(ct$g1, ct$g2)) {
-      d <- prof_list[[g]]
-      if (nrow(d) > 0) lines(d$pos, d$meth, col=GROUP_COLS[g], lwd=1.8, lty=GROUP_LTY[g])
-    }
-    legend("topright", legend=c(ct$g1, ct$g2),
-           col=GROUP_COLS[c(ct$g1, ct$g2)],
-           lty=GROUP_LTY[c(ct$g1, ct$g2)],
-           lwd=1.8, bty="n", cex=0.85)
-    dev.off()
-  }
 }
 
 

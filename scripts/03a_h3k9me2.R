@@ -229,10 +229,10 @@ message("  median delta BG : ", signif(median(delta_bg$delta,  na.rm=TRUE), 3))
 
 # y-axis clipping: outliers stretch axis to +/- 200 and hide the box bodies.
 # 99th percentile of |delta| is ~10-15 so +/- 30 keeps whiskers visible.
-y_lim <- c(-30, 30)
+y_lim <- c(-15, 15)
 
 p_delta <- ggplot(delta_df, aes(x=group, y=delta, fill=group)) +
-  geom_boxplot(outlier.size=0.3, outlier.alpha=0.3) +
+  geom_boxplot(outlier.shape=NA, width=0.4) +
   geom_hline(yintercept=0, linetype="dashed", colour="grey50") +
   scale_fill_manual(values=setNames(c("#cccccc","#1B4F8A"),
                                     levels(delta_df$group))) +
