@@ -16,6 +16,10 @@ suppressPackageStartupMessages({
 setwd('/data/home/bt25018/sma_epigenomics_pipeline')
 OUT <- 'results/dmr_annotation'
 
+# Bock-style annotation panels: CpG context (Panel C) + genomic features (Panel D),
+# each with a stacked-bar proportion plot above and a log2(obs/exp) heatmap below.
+# reference: Bock et al. 2010 (Nat Biotech). colours follow that figure (Okabe-Ito).
+
 CONTRASTS <- c(
   'ASO_CTRL_vs_Scramble_CTRL',
   'Scramble_VPA_vs_Scramble_CTRL',
@@ -33,7 +37,7 @@ LABELS <- c(
 
 txdb <- TxDb.Hsapiens.UCSC.hg38.knownGene
 
-# Load CpG islands
+# CpG islands from AnnotationHub; +/- 2kb shores, 2-4 kb shelves
 message("loading CpG islands...")
 ah  <- AnnotationHub()
 cpg <- ah[["AH5086"]]
@@ -49,6 +53,7 @@ shelves <- c(
 shores  <- shores[width(shores)  > 0]
 shelves <- shelves[width(shelves) > 0]
 
+# CpG context classifier: Island > Shore > Shelf > Open_Sea (priority order)
 classify_cpg <- function(gr) {
   cls <- rep("Open_Sea", length(gr))
   cls[unique(queryHits(findOverlaps(gr, shelves)))]  <- "Shelf"
@@ -57,6 +62,7 @@ classify_cpg <- function(gr) {
   cls
 }
 
+# collapse ChIPseeker annotation labels to 7 broad categories
 simplify_annot <- function(x) {
   case_when(
     grepl("Promoter", x)          ~ "Promoter",
@@ -70,7 +76,7 @@ simplify_annot <- function(x) {
   )
 }
 
-# Load genome-wide CpGs for background
+# whole-genome CpG distribution = denominator for log2(obs/exp)
 message("loading genome-wide CpG background...")
 cache   <- readRDS('results/dmr/meth_pooled_cache.rds')
 all_cpg <- cache[[1]]
@@ -78,7 +84,7 @@ all_cpg <- all_cpg[all_cpg$readsN >= 1]
 genome_cpg_ctx <- classify_cpg(all_cpg)
 genome_cpg_tbl <- table(genome_cpg_ctx) / length(genome_cpg_ctx)
 
-# Load genome-wide annotation for background
+# every 100th CpG for the feature-background table (full set too slow)
 message("annotating genome-wide CpGs for feature background...")
 all_anno <- annotatePeak(all_cpg[seq(1, length(all_cpg), by=100)],
                          tssRegion=c(-2000,2000),
@@ -87,7 +93,7 @@ all_anno_df <- as.data.frame(all_anno)
 all_anno_df$feature <- simplify_annot(all_anno_df$annotation)
 genome_feat_tbl <- table(all_anno_df$feature) / nrow(all_anno_df)
 
-# Process each contrast
+# fill matrices: rows = Whole Genome + each contrast, cols = categories
 message("processing contrasts...")
 cpg_mat  <- matrix(0, nrow=length(CONTRASTS)+1,
                    ncol=4,
@@ -99,7 +105,7 @@ feat_mat <- matrix(0, nrow=length(CONTRASTS)+1,
                                  c("Promoter","5' UTR","Exon","Intron",
                                    "3' UTR","Downstream","Intergenic")))
 
-# Fill genome row
+# row 1 = whole genome reference
 for (cat in names(genome_cpg_tbl))
   if (cat %in% colnames(cpg_mat)) cpg_mat["Whole Genome", cat] <- genome_cpg_tbl[cat]
 for (cat in names(genome_feat_tbl))
@@ -111,13 +117,13 @@ for (ct in CONTRASTS) {
   dmr <- readRDS(paste0('results/dmr/dmr_', ct, '.rds'))
   dmr <- dmr[dmr$context == 'CG']
 
-  # CpG context
+  # per-DMR CpG context
   ctx <- classify_cpg(dmr)
   ctx_tbl <- table(ctx) / length(ctx)
   for (cat in names(ctx_tbl))
     if (cat %in% colnames(cpg_mat)) cpg_mat[lab, cat] <- ctx_tbl[cat]
 
-  # Genomic features
+  # per-DMR feature annotation
   anno <- annotatePeak(dmr, tssRegion=c(-2000,2000),
                        TxDb=txdb, annoDb="org.Hs.eg.db")
   anno_df <- as.data.frame(anno)
@@ -127,11 +133,11 @@ for (ct in CONTRASTS) {
     if (cat %in% colnames(feat_mat)) feat_mat[lab, cat] <- feat_tbl[cat]
 }
 
-# Normalise rows to sum to 1
+# rows -> proportions
 cpg_mat  <- cpg_mat  / rowSums(cpg_mat)
 feat_mat <- feat_mat / rowSums(feat_mat)
 
-# log2 obs/exp (vs Whole Genome row)
+# log2 obs/exp vs whole-genome row (drop the WG row itself before dividing)
 log2_cpg  <- log2((cpg_mat[-1,]  + 0.001) /
                   (matrix(cpg_mat["Whole Genome",],
                            nrow=nrow(cpg_mat)-1, ncol=ncol(cpg_mat), byrow=TRUE) + 0.001))
@@ -139,21 +145,44 @@ log2_feat <- log2((feat_mat[-1,] + 0.001) /
                   (matrix(feat_mat["Whole Genome",],
                            nrow=nrow(feat_mat)-1, ncol=ncol(feat_mat), byrow=TRUE) + 0.001))
 
-# Colour palettes
+# Okabe-Ito colourblind-safe palette (matches Bock et al. fig)
 cbbPalette <- c("#000000","#E69F00","#56B4E9","#009E73",
                 "#F0E442","#0072B2","#D55E00","#CC79A7")
-cols_cpg   <- cbbPalette[c(6,4,5,1)]
-cols_feat  <- cbbPalette[c(7,2,3,4,5,6,1)]
+
+# Bock Panel C mapping: Island=black, Shore=light-blue, Shelf=orange, OpenSea=green
+cols_cpg <- c(
+  Island   = "#000000",
+  Shore    = "#56B4E9",
+  Shelf    = "#E69F00",
+  Open_Sea = "#009E73"
+)
+
+# Bock Panel D mapping: Promoter=vermillion, 5'UTR=orange, Exon=green,
+# Intron=yellow, 3'UTR=black, Downstream=pink, Intergenic=dark blue
+cols_feat <- c(
+  "Promoter"   = "#D55E00",
+  "5' UTR"     = "#E69F00",
+  "Exon"       = "#009E73",
+  "Intron"     = "#F0E442",
+  "3' UTR"     = "#000000",
+  "Downstream" = "#CC79A7",
+  "Intergenic" = "#0072B2"
+)
+
+# diverging palette for the log2(obs/exp) heatmaps (orange/blue, white at 0)
 cols_contrast <- rev(colorRampPalette(c(cbbPalette[7],"white",cbbPalette[6]))(60))
-custom_at <- seq(-3, 3, by=(8/60))
 
-# Clamp
-log2_cpg[log2_cpg < -3]   <- -3
-log2_cpg[log2_cpg > 3]    <- 3
-log2_feat[log2_feat < -3] <- -3
-log2_feat[log2_feat > 3]  <- 3
+# tighten log2 scale: actual values are <= ~1 in magnitude, +/-3 wastes contrast.
+# clip to +/-1.5 and break the colour ramp accordingly.
+LOG2_LIM   <- 1.5
+custom_at  <- seq(-LOG2_LIM, LOG2_LIM, length.out=61)
 
-# Plot Panel C — CpG island
+log2_cpg[log2_cpg < -LOG2_LIM]   <- -LOG2_LIM
+log2_cpg[log2_cpg >  LOG2_LIM]   <-  LOG2_LIM
+log2_feat[log2_feat < -LOG2_LIM] <- -LOG2_LIM
+log2_feat[log2_feat >  LOG2_LIM] <-  LOG2_LIM
+
+# Panel C: CpG context stacked bar ----
 cpg_prop <- as.data.frame(cpg_mat) %>%
   rownames_to_column("group") %>%
   pivot_longer(-group, names_to="context", values_to="pct")
@@ -164,8 +193,7 @@ cpg_prop$context <- factor(cpg_prop$context,
 
 p_cpg_bar <- ggplot(cpg_prop, aes(x=group, y=pct, fill=context)) +
   geom_bar(stat="identity", position="fill") +
-  scale_fill_manual(values=setNames(cols_cpg, c("Island","Shore","Shelf","Open_Sea")),
-                    name="CpG context") +
+  scale_fill_manual(values=cols_cpg, name="CpG context") +
   scale_y_continuous(labels=scales::percent_format(1)) +
   theme_classic(base_size=10) +
   theme(axis.text.x=element_text(angle=45, hjust=1, size=8),
@@ -175,15 +203,19 @@ p_cpg_bar <- ggplot(cpg_prop, aes(x=group, y=pct, fill=context)) +
 ggsave(file.path(OUT, "bock_panelC_cpg_bar.pdf"),
        p_cpg_bar, width=8, height=4, device=cairo_pdf)
 
-pdf(file.path(OUT, "bock_panelC_cpg_heatmap.pdf"), width=6, height=3)
+# heatmap: enlarge canvas so the cell labels and colour key are readable
+pdf(file.path(OUT, "bock_panelC_cpg_heatmap.pdf"), width=9, height=5)
 print(levelplot(t(log2_cpg),
                 at=custom_at, col.regions=cols_contrast,
-                main="CpG context log2(obs/exp)",
+                main=list(label="CpG context log2(obs/exp)", cex=0.95),
                 xlab="", ylab="",
-                scales=list(x=list(rot=45))))
+                colorkey=list(space="right",
+                              labels=list(at=seq(-LOG2_LIM, LOG2_LIM, 0.5))),
+                scales=list(x=list(rot=45, cex=0.85),
+                            y=list(cex=0.85))))
 dev.off()
 
-# Plot Panel D — genomic features
+# Panel D: genomic feature stacked bar ----
 feat_prop <- as.data.frame(feat_mat) %>%
   rownames_to_column("group") %>%
   pivot_longer(-group, names_to="feature", values_to="pct")
@@ -195,10 +227,7 @@ feat_prop$feature <- factor(feat_prop$feature,
 
 p_feat_bar <- ggplot(feat_prop, aes(x=group, y=pct, fill=feature)) +
   geom_bar(stat="identity", position="fill") +
-  scale_fill_manual(values=setNames(cols_feat,
-                                    c("Promoter","5' UTR","Exon","Intron",
-                                      "3' UTR","Downstream","Intergenic")),
-                    name="Genomic feature") +
+  scale_fill_manual(values=cols_feat, name="Genomic feature") +
   scale_y_continuous(labels=scales::percent_format(1)) +
   theme_classic(base_size=10) +
   theme(axis.text.x=element_text(angle=45, hjust=1, size=8),
@@ -208,12 +237,16 @@ p_feat_bar <- ggplot(feat_prop, aes(x=group, y=pct, fill=feature)) +
 ggsave(file.path(OUT, "bock_panelD_feat_bar.pdf"),
        p_feat_bar, width=8, height=4, device=cairo_pdf)
 
-pdf(file.path(OUT, "bock_panelD_feat_heatmap.pdf"), width=7, height=3)
+# wider heatmap (7 categories needs more horizontal space)
+pdf(file.path(OUT, "bock_panelD_feat_heatmap.pdf"), width=11, height=5)
 print(levelplot(t(log2_feat),
                 at=custom_at, col.regions=cols_contrast,
-                main="Genomic feature log2(obs/exp)",
+                main=list(label="Genomic feature log2(obs/exp)", cex=0.95),
                 xlab="", ylab="",
-                scales=list(x=list(rot=45))))
+                colorkey=list(space="right",
+                              labels=list(at=seq(-LOG2_LIM, LOG2_LIM, 0.5))),
+                scales=list(x=list(rot=45, cex=0.85),
+                            y=list(cex=0.85))))
 dev.off()
 
 message("All Bock-style plots saved to: ", OUT)

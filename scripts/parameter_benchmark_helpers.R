@@ -58,19 +58,19 @@ run_dmrs_one <- function(treat, ctrl, method, ws, kernel="triangular",
         method="noise_filter", windowSize=ws, kernelFunction=kernel,
         test=th$test, pValueThreshold=th$pval, minCytosinesCount=th$minCpG,
         minProportionDifference=th$minDiff, minGap=th$minGap, minSize=th$minSize,
-        minReadsPerCytosine=4, BPPARAM=BPPARAM_FAST, parallel=TRUE)
+        minReadsPerCytosine=4, parallel=FALSE)
     } else if (method == "bins") {
       computeDMRs(treat, ctrl, regions=region, context="CG",
         method="bins", binSize=ws, test=th$test, pValueThreshold=th$pval,
         minCytosinesCount=th$minCpG, minProportionDifference=th$minDiff,
         minGap=th$minGap, minSize=th$minSize, minReadsPerCytosine=4,
-        BPPARAM=BPPARAM_FAST, parallel=TRUE)
+        parallel=FALSE)
     } else {
       computeDMRs(treat, ctrl, regions=region, context="CG",
         method="neighbourhood", test=th$test, pValueThreshold=th$pval,
         minCytosinesCount=th$minCpG, minProportionDifference=th$minDiff,
         minGap=th$minGap, minSize=th$minSize, minReadsPerCytosine=4,
-        BPPARAM=BPPARAM_FAST, parallel=TRUE)
+        parallel=FALSE)
     }
   }, error = function(e) {
     message("  Error: ", e$message)

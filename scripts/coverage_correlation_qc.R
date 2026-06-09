@@ -12,7 +12,7 @@ reps <- 1:3
 
 CHROM     <- "chr1"
 breaks    <- c(1, 5, 10, 15, 20, 30, 50)
-distances <- c(1, 2, 5, 10, 20, 50, 100, 200, 500, 1000)
+distances <- c(5, 10, 20, 50, 100, 200, 500)
 
 message("Loading all 12 samples...")
 meth_list <- list()

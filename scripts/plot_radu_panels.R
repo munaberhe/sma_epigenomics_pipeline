@@ -16,7 +16,7 @@ library(patchwork)
 #   - DMRcaller-NB excluded from BOTH coverage panels AND the panel B legend
 # =============================================================================
 
-USE_TURBO <- as.logical(as.integer(Sys.getenv("TURBO", unset = "1")))
+USE_TURBO <- FALSE
 OUT_DIR   <- if (USE_TURBO) "results/dmr_benchmark_turbo" else "results/dmr_benchmark"
 PLOT_DIR  <- file.path(OUT_DIR, "plots")
 dir.create(PLOT_DIR, recursive = TRUE, showWarnings = FALSE)
@@ -25,7 +25,8 @@ message("Reading CSVs from: ", OUT_DIR)
 csv_files <- list.files(OUT_DIR, pattern = "parameter_benchmark.*\\.csv",
                         full.names = TRUE)
 if (length(csv_files) == 0) stop("No parameter_benchmark*.csv found in ", OUT_DIR)
-
+csv_files <- csv_files[grepl("label_swap", csv_files)]
+if (length(csv_files) == 0) stop("No label_swap CSV found in ", OUT_DIR)
 df <- do.call(rbind, lapply(csv_files, read.csv))
 df$ratio[is.infinite(df$ratio)] <- NA
 df$window_size_num <- as.numeric(as.character(df$window_size))
