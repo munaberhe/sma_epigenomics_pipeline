@@ -166,7 +166,8 @@ plot_one <- function(pooled, comp, locus_name, dmrs=NULL) {
     gff              = GEs,
     windowSize       = WIN_SIZE,
     context          = "CG",
-    col              = c(COND_COLOURS[comp$cond1], COND_COLOURS[comp$cond2]),
+    col              = c(COND_COLOURS[comp$cond1], COND_COLOURS[comp$cond2],
+                           "#FFFFFF", "#FFFFFF", "#009E73"),
     main             = sprintf("%s: %s vs %s", locus_name, comp$cond1, comp$cond2),
     plotMeanLines    = TRUE,
     plotPoints       = TRUE

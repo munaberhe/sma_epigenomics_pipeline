@@ -9,6 +9,10 @@ suppressPackageStartupMessages({
   library(org.Hs.eg.db)
   library(TxDb.Hsapiens.UCSC.hg38.knownGene)
   library(ChIPseeker)
+  library(msigdbr)
+  library(dplyr)
+  library(ComplexHeatmap)
+  library(circlize)
 })
 setwd("/data/home/bt25018/sma_epigenomics_pipeline")
 
@@ -94,8 +98,8 @@ set.seed(1)
 dmr_aso_sub <- dmr_aso[sample(length(dmr_aso), min(5000, length(dmr_aso)))]
 
 message("making background regions...")
-bg_aso      <- make_background(dmr_aso_sub)
-bg_specific <- make_background(dmr_specific, n_bg=length(dmr_specific)*5)
+bg_aso      <- make_background(dmr_aso_sub, n_bg=1500)
+bg_specific <- make_background(dmr_specific, n_bg=1500)
 
 sig_aso      <- compute_signal(dmr_aso_sub,  "ASO_DMR")
 sig_bg_aso   <- compute_signal(bg_aso,       "Background")
@@ -172,6 +176,41 @@ combined <- p1 / p2 +
   plot_annotation(title="H3K9me2 enrichment at WGBS DMR loci",
                   theme=theme(plot.title=element_text(face="bold", size=13)))
 ggsave(file.path(OUT_DIR, "h3k9me2_signal_boxplot.pdf"), combined, width=10, height=9)
+
+# Delta signal plot: mean ASO - mean CTR per DMR vs background
+message("computing delta H3K9me2 signal (ASO - CTR)...")
+delta_dmr <- data.frame(
+  delta = sig_aso$mean_ASO - sig_aso$mean_CTR,
+  group = "ASO DMRs"
+)
+delta_bg <- data.frame(
+  delta = sig_bg_aso$mean_ASO - sig_bg_aso$mean_CTR,
+  group = "Background (n=1500)"
+)
+delta_df <- rbind(delta_dmr, delta_bg)
+delta_df$group <- factor(delta_df$group, levels=c("Background (n=1500)","ASO DMRs"))
+
+wtest_delta <- wilcox.test(
+  delta_dmr$delta, delta_bg$delta,
+  alternative="two.sided")
+message("  delta Wilcoxon p = ", signif(wtest_delta$p.value, 3))
+
+p_delta <- ggplot(delta_df, aes(x=group, y=delta, fill=group)) +
+  geom_boxplot(outlier.size=0.3, outlier.alpha=0.3) +
+  geom_hline(yintercept=0, linetype="dashed", colour="grey50") +
+  scale_fill_manual(values=c("Background (n=1500)"="#cccccc",
+                              "ASO DMRs"="#1B4F8A")) +
+  annotate("text", x=1.5, y=max(delta_df$delta, na.rm=TRUE)*0.9,
+           label=paste0("Wilcoxon p = ", signif(wtest_delta$p.value, 3)),
+           size=3.5, colour="grey30") +
+  theme_classic(base_size=12) +
+  theme(legend.position="none",
+        plot.title=element_text(face="bold")) +
+  labs(x=NULL, y="Delta H3K9me2 signal (ASO - CTR)")
+
+ggsave(file.path(OUT_DIR, "h3k9me2_delta_signal.pdf"),
+       p_delta, width=6, height=6, device=cairo_pdf)
+message("saved: h3k9me2_delta_signal.pdf")
 
 # SMN2 locus spot check
 message("\nSMN2 locus H3K9me2 signal...")
@@ -739,9 +778,13 @@ p1 <- ggplot(all_data, aes(x=contrast, y=n, fill=annot_simple)) +
   labs(title="Genomic distribution of DMRs across contrasts",
        x=NULL, y="Number of DMRs")
 
-# Plot 2 — stacked bar by proportion
+# Plot 2 — stacked bar by proportion with percentage labels
 p2 <- ggplot(all_data, aes(x=contrast, y=n, fill=annot_simple)) +
   geom_bar(stat="identity", position="fill") +
+  geom_text(aes(label=ifelse(after_stat(y) > 0.04,
+                             paste0(round(after_stat(y)*100,1),"%"), "")),
+            stat="fill", position=position_fill(vjust=0.5),
+            size=2.5, colour="white", fontface="bold") +
   facet_wrap(~direction) +
   scale_fill_manual(values=ANNOT_COLS, name="Genomic feature") +
   scale_y_continuous(labels=scales::percent_format(1)) +
@@ -755,7 +798,7 @@ p2 <- ggplot(all_data, aes(x=contrast, y=n, fill=annot_simple)) +
 ggsave(file.path(OUT, "DMR_annotation_combined_count.pdf"),
        p1, width=12, height=6, device=cairo_pdf)
 ggsave(file.path(OUT, "DMR_annotation_combined_proportion.pdf"),
-       p2, width=12, height=6, device=cairo_pdf)
+       p2, width=16, height=6, device=cairo_pdf)
 
 message("Saved: DMR_annotation_combined_count.pdf")
 message("Saved: DMR_annotation_combined_proportion.pdf")

@@ -7,6 +7,7 @@ suppressPackageStartupMessages({
   library(org.Hs.eg.db)
   library(clusterProfiler)
   library(ggplot2)
+  library(UpSetR)
 })
 
 # Annotate DMRs with genomic features and run GO/KEGG enrichment.
@@ -77,53 +78,50 @@ for (contrast in CONTRASTS) {
   plotDistToTSS(anno, title=paste0("Distance to TSS — ", contrast))
   dev.off()
 
-  # GO and KEGG enrichment — run separately for hypo and hyper
+  # GO and KEGG enrichment — separated by direction AND region type
   for (direction in c("gain", "loss")) {
     label <- if (direction == "gain") "hypo" else "hyper"
     sub   <- dmrs_hc[dmrs_hc$regionType == direction]
     message("  ", label, ": ", length(sub), " DMRs")
     if (length(sub) < 10) { message("  too few, skipping"); next }
-
-    anno_sub <- annotatePeak(sub, tssRegion=c(-3000, 3000),
+    anno_sub <- annotatePeak(sub, tssRegion=c(-2000, 2000),
                              TxDb=txdb, annoDb="org.Hs.eg.db")
-    genes    <- unique(as.data.frame(anno_sub)$geneId)
-    genes    <- genes[!is.na(genes)]
-    message("  genes: ", length(genes))
-    if (length(genes) < 3) { message("  too few genes"); next }
-
-    # GO biological process
-    go <- enrichGO(gene=genes, OrgDb=org.Hs.eg.db, keyType="ENTREZID",
-                   ont="BP", pAdjustMethod="BH",
-                   pvalueCutoff=0.05, qvalueCutoff=0.2)
-    if (!is.null(go) && nrow(go) > 0) {
-      message("  top GO BP: ", go$Description[1])
-      write.csv(as.data.frame(go),
-                file.path(OUT_DIR, paste0(contrast, "_GO_BP_", label, ".csv")),
-                row.names=FALSE)
-      pdf(file.path(OUT_DIR, paste0(contrast, "_GO_BP_", label, "_dotplot.pdf")),
-          width=10, height=8)
-      print(dotplot(go, showCategory=15,
-                    title=paste0("GO BP (", label, ") — ", contrast)))
-      dev.off()
-    } else {
-      message("  no significant GO BP terms")
-    }
-
-    # KEGG pathways
-    kegg <- enrichKEGG(gene=genes, organism="hsa",
-                       pvalueCutoff=0.1, qvalueCutoff=0.3, minGSSize=5)
-    if (!is.null(kegg) && nrow(kegg) > 0) {
-      message("  top KEGG: ", kegg$Description[1])
-      write.csv(as.data.frame(kegg),
-                file.path(OUT_DIR, paste0(contrast, "_KEGG_", label, ".csv")),
-                row.names=FALSE)
-      pdf(file.path(OUT_DIR, paste0(contrast, "_KEGG_", label, "_dotplot.pdf")),
-          width=10, height=8)
-      print(dotplot(kegg, showCategory=15,
-                    title=paste0("KEGG (", label, ") — ", contrast)))
-      dev.off()
-    } else {
-      message("  no significant KEGG")
+    anno_df  <- as.data.frame(anno_sub)
+    region_sets <- list(
+      promoter   = anno_df[grepl("Promoter", anno_df$annotation), ],
+      intergenic = anno_df[!grepl("Promoter", anno_df$annotation) &
+                           abs(anno_df$distanceToTSS) <= 50000, ]
+    )
+    for (region_label in names(region_sets)) {
+      rdf   <- region_sets[[region_label]]
+      genes <- unique(rdf$geneId)
+      genes <- genes[!is.na(genes) & genes != ""]
+      message("  ", label, " ", region_label, ": ", length(genes), " genes")
+      if (length(genes) < 30) { message("  dropped (n<30)"); next }
+      tag <- paste0(contrast, "_GO_BP_", label, "_", region_label)
+      go <- enrichGO(gene=genes, OrgDb=org.Hs.eg.db, keyType="ENTREZID",
+                     ont="BP", pAdjustMethod="BH",
+                     pvalueCutoff=0.05, qvalueCutoff=0.2, minGSSize=30)
+      if (!is.null(go) && nrow(go) > 0) {
+        message("  top GO BP: ", go$Description[1])
+        write.csv(as.data.frame(go),
+                  file.path(OUT_DIR, paste0(tag, ".csv")), row.names=FALSE)
+        pdf(file.path(OUT_DIR, paste0(tag, "_dotplot.pdf")), width=10, height=8)
+        print(dotplot(go, showCategory=15,
+                      title=paste0("GO BP (", label, ", ", region_label, ") — ", contrast)))
+        dev.off()
+      } else { message("  no significant GO BP") }
+      kegg_tag <- paste0(contrast, "_KEGG_", label, "_", region_label)
+      kegg <- enrichKEGG(gene=genes, organism="hsa",
+                         pvalueCutoff=0.1, qvalueCutoff=0.3, minGSSize=30)
+      if (!is.null(kegg) && nrow(kegg) > 0) {
+        write.csv(as.data.frame(kegg),
+                  file.path(OUT_DIR, paste0(kegg_tag, ".csv")), row.names=FALSE)
+        pdf(file.path(OUT_DIR, paste0(kegg_tag, "_dotplot.pdf")), width=10, height=8)
+        print(dotplot(kegg, showCategory=15,
+                      title=paste0("KEGG (", label, ", ", region_label, ") — ", contrast)))
+        dev.off()
+      } else { message("  no significant KEGG") }
     }
   }
 }
@@ -175,7 +173,7 @@ KEY_LOCI <- list(
 )
 
 # load pooled methylation data — cached to RDS after first run (~20-30 min)
-meth_cache <- file.path(DMR_DIR, "meth_pooled_cache.rds")
+meth_cache <- file.path("results/dmr", "meth_pooled_cache.rds")
 if (file.exists(meth_cache)) {
   message("loading cached pooled data...")
   meth_pooled <- readRDS(meth_cache)
@@ -200,7 +198,7 @@ if (file.exists(meth_cache)) {
 message("\nloading DMR results...")
 dmr_results <- list()
 for (ct in CONTRASTS) {
-  rds_path <- file.path(DMR_DIR, paste0("dmr_", ct$name, ".rds"))
+  rds_path <- file.path("results/dmr", paste0("dmr_", ct$name, ".rds"))
   if (!file.exists(rds_path)) { message("  missing: ", ct$name); next }
   dmr_results[[ct$name]] <- readRDS(rds_path)
   message("  ", ct$name, ": ", length(dmr_results[[ct$name]]), " DMRs")
@@ -296,6 +294,7 @@ for (ct in CONTRASTS) {
 }
 
 
+aso     <- readRDS("results/dmr/dmr_ASO_CTRL_vs_Scramble_CTRL.rds")
 aso_vpa <- readRDS("results/dmr/dmr_ASO_VPA_vs_Scramble_CTRL.rds")
 scr_vpa <- readRDS("results/dmr/dmr_Scramble_VPA_vs_Scramble_CTRL.rds")
 
@@ -351,14 +350,13 @@ summary_df <- data.frame(
     "ASO_CTRL overlapping ASO_VPA",
     "ASO_CTRL overlapping Scramble_VPA",
     "ASO_VPA overlapping Scramble_VPA",
-    "ASO-specific (ASO+ASO_VPA, not Scramble_VPA)"),
+    "ASO-specific (ASO_CTRL, not Scramble_VPA)"),
   n = c(
     length(aso), length(aso_vpa), length(scr_vpa),
     length(subsetByOverlaps(aso, aso_vpa)),
     length(subsetByOverlaps(aso, scr_vpa)),
     length(subsetByOverlaps(aso_vpa, scr_vpa)),
-    length(subsetByOverlaps(
-      subsetByOverlaps(aso, aso_vpa), scr_vpa, invert=TRUE)))
+    length(subsetByOverlaps(aso, scr_vpa, invert=TRUE)))
 )
 print(summary_df, row.names=FALSE)
 write.table(summary_df, file.path(OUT_DIR, "dmr_overlap_summary.tsv"),
@@ -397,6 +395,8 @@ dir.create(OUT_DIR, recursive=TRUE, showWarnings=FALSE)
 
 KEEP_CHRS <- paste0("chr", 1:22)
 N_BG      <- 1000
+DMR_FILE   <- "results/dmr/dmr_ASO_CTRL_vs_Scramble_CTRL.rds"
+SPLICE_BED <- "data/reference/splice_sites_hg38_protein_coding.bed"
 set.seed(42)
 
 message("loading ASO-specific DMRs...")
@@ -494,3 +494,93 @@ ggsave(file.path(OUT_DIR, "splice_junction_distance_density.pdf"), p, width=10, 
 message("saved: splice_junction_distance_density.pdf")
 message("\ndone. outputs in: ", OUT_DIR)
 
+
+# Hypo/hyper DMR count bar chart (slide 16)
+message("generating hypo/hyper DMR count bar chart...")
+suppressPackageStartupMessages(library(dplyr))
+
+CONTRAST_LABELS <- c(
+  'ASO_CTRL_vs_Scramble_CTRL'     = 'ASO vs Scr_CTRL',
+  'Scramble_VPA_vs_Scramble_CTRL' = 'VPA vs Scr_CTRL',
+  'ASO_VPA_vs_Scramble_CTRL'      = 'ASO+VPA vs Scr_CTRL',
+  'ASO_VPA_vs_ASO_CTRL'           = 'ASO+VPA vs ASO',
+  'ASO_VPA_vs_Scramble_VPA'       = 'ASO+VPA vs Scr_VPA'
+)
+
+dir_df <- do.call(rbind, lapply(names(CONTRAST_LABELS), function(ct) {
+  dmr <- readRDS(paste0('results/dmr/dmr_', ct, '.rds'))
+  dmr <- dmr[dmr$context == 'CG']
+  data.frame(
+    contrast  = CONTRAST_LABELS[ct],
+    direction = c('Hypomethylated', 'Hypermethylated'),
+    n         = c(sum(dmr$regionType == 'gain'),
+                  sum(dmr$regionType == 'loss'))
+  )
+}))
+
+dir_df$contrast  <- factor(dir_df$contrast, levels=CONTRAST_LABELS)
+dir_df$direction <- factor(dir_df$direction,
+                           levels=c('Hypermethylated','Hypomethylated'))
+totals_df <- dir_df %>% group_by(contrast) %>% summarise(total=sum(n))
+
+p_dir <- ggplot(dir_df, aes(x=contrast, y=n, fill=direction)) +
+  geom_bar(stat='identity', position='stack', width=0.6) +
+  geom_text(aes(label=formatC(n, format='d', big.mark=',')),
+            position=position_stack(vjust=0.5),
+            size=2.8, colour='white', fontface='bold') +
+  geom_text(data=totals_df,
+            aes(x=contrast, y=total,
+                label=formatC(total, format='d', big.mark=',')),
+            inherit.aes=FALSE,
+            vjust=-0.4, size=3, fontface='bold', colour='grey30') +
+  scale_fill_manual(values=c(Hypomethylated='#2166AC',
+                              Hypermethylated='#B2182B')) +
+  scale_y_log10(labels=scales::comma,
+                breaks=c(100,1000,10000,100000,1000000)) +
+  annotation_logticks(sides='l') +
+  theme_classic(base_size=12) +
+  theme(axis.text.x=element_text(angle=30, hjust=1, size=10),
+        legend.position='top') +
+  labs(x=NULL, y='Number of DMRs (log10)', fill=NULL)
+
+ggsave(file.path(OUT_DIR, 'DMR_hypo_hyper_counts_bar.pdf'),
+       p_dir, width=10, height=6, device=cairo_pdf)
+message("saved: DMR_hypo_hyper_counts_bar.pdf")
+
+# DMR-level violin plot separated by hypo/hyper (slide 18)
+message("generating DMR violin plot hypo/hyper...")
+
+violin_dmr <- do.call(rbind, lapply(names(CONTRAST_LABELS), function(ct) {
+  dmr <- readRDS(paste0('results/dmr/dmr_', ct, '.rds'))
+  dmr <- dmr[dmr$context == 'CG' & dmr$cytosinesCount >= 4]
+  rbind(
+    data.frame(contrast=CONTRAST_LABELS[ct], direction='Hypomethylated',
+               meth=c(dmr$proportion1[dmr$regionType=='gain'],
+                      dmr$proportion2[dmr$regionType=='gain'])),
+    data.frame(contrast=CONTRAST_LABELS[ct], direction='Hypermethylated',
+               meth=c(dmr$proportion1[dmr$regionType=='loss'],
+                      dmr$proportion2[dmr$regionType=='loss']))
+  )
+}))
+
+violin_dmr$contrast  <- factor(violin_dmr$contrast, levels=CONTRAST_LABELS)
+violin_dmr$direction <- factor(violin_dmr$direction,
+                                levels=c('Hypomethylated','Hypermethylated'))
+
+p_viol <- ggplot(violin_dmr, aes(x=contrast, y=meth, fill=direction)) +
+  geom_violin(trim=FALSE, alpha=0.8, linewidth=0.3) +
+  geom_boxplot(width=0.07, fill='white',
+               outlier.size=0.2, outlier.alpha=0.2) +
+  facet_wrap(~direction, ncol=2) +
+  scale_fill_manual(values=c(Hypomethylated='#2166AC',
+                              Hypermethylated='#B2182B')) +
+  scale_y_continuous(labels=scales::percent_format(1), limits=c(0,1)) +
+  theme_classic(base_size=11) +
+  theme(axis.text.x=element_text(angle=45, hjust=1, size=9),
+        strip.text=element_text(face='bold', size=11),
+        legend.position='none') +
+  labs(x=NULL, y='CpG methylation proportion')
+
+ggsave(file.path(OUT_DIR, 'DMR_violin_hypo_hyper.pdf'),
+       p_viol, width=14, height=6, device=cairo_pdf)
+message("saved: DMR_violin_hypo_hyper.pdf")

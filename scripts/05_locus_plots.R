@@ -29,21 +29,27 @@ GROUP_LTY <- c(
 GROUPS <- c("ASO_VPA", "ASO_CTRL", "Scramble_VPA", "Scramble_CTRL")
 
 REGIONS <- list(
-  list(region=GRanges("chr1",  IRanges(1, 248956422)),
-       window=1000000, label="chr1_1Mb",
-       title="CpG methylation chr1 (1 Mb bins)"),
   list(region=GRanges("chrX",  IRanges(1, 155270560)),
-       window=500000,  label="chrX_500kb",
-       title="CpG methylation chrX (500 kb bins) — ASO hotspot (620 DMRs)"),
+       window=50000,  label="chrX_50kb",
+       title="CpG methylation chrX (50 kb bins) — ASO hotspot (3.97 DMRs/Mb)"),
   list(region=GRanges("chrX",  IRanges(10000000, 20000000)),
        window=50000,   label="chrX_10_20Mb_50kb",
        title="CpG methylation chrX:10-20 Mb (50 kb bins) — highest ASO density"),
   list(region=GRanges("chr5",  IRanges(1, 181538259)),
-       window=500000,  label="chr5_500kb",
-       title="CpG methylation chr5 (500 kb bins)"),
+       window=50000,  label="chr5_50kb",
+       title="CpG methylation chr5 (50 kb bins)"),
   list(region=GRanges("chr5",  IRanges(69000000, 71500000)),
        window=10000,   label="chr5_SMN2_10kb",
-       title="CpG methylation chr5:69-71.5 Mb (10 kb bins) — SMN2 locus")
+       title="CpG methylation chr5:69-71.5 Mb (10 kb bins) — SMN2 locus"),
+  list(region=GRanges("chr4",  IRanges(1, 190214555)),
+       window=50000,  label="chr4_50kb",
+       title="CpG methylation chr4 (50 kb bins) — autosome outlier"),
+  list(region=GRanges("chr8",  IRanges(1, 145138636)),
+       window=50000,  label="chr8_50kb",
+       title="CpG methylation chr8 (50 kb bins) — highest autosome density"),
+  list(region=GRanges("chr13", IRanges(55000000, 85000000)),
+       window=50000,  label="chr13_60_80Mb_50kb",
+       title="CpG methylation chr13:55-85 Mb (50 kb bins) — lncRNA hotspot")
 )
 
 CONTRASTS <- list(
@@ -124,7 +130,7 @@ for (reg in REGIONS) {
 
 
 OUT_DIR    <- "results/dmr/plots/annotated"
-METH_CACHE <- file.path(DMR_DIR, "meth_pooled_cache.rds")
+METH_CACHE <- "results/dmr/meth_pooled_cache.rds"
 dir.create(OUT_DIR, recursive=TRUE, showWarnings=FALSE)
 
 WIN_SIZE <- 300
@@ -284,7 +290,7 @@ meth_pooled <- readRDS(METH_CACHE)
 message("loading DMR results...")
 dmr_results <- list()
 for (ct in CONTRASTS) {
-  rds_path <- file.path(DMR_DIR, paste0("dmr_", ct$name, ".rds"))
+  rds_path <- file.path("results/dmr", paste0("dmr_", ct$name, ".rds"))
   if (!file.exists(rds_path)) { message("  missing: ", ct$name); next }
   dmr_results[[ct$name]] <- readRDS(rds_path)
   message("  ", ct$name, ": ", length(dmr_results[[ct$name]]), " DMRs")
