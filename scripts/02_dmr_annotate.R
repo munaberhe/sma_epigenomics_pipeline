@@ -10,6 +10,7 @@ suppressPackageStartupMessages({
   library(UpSetR)
   library(dplyr)
 })
+source("scripts/00_sma_palette.R")
 
 # DMR annotation + GO/KEGG enrichment + summary plots.
 # input : results/dmr/dmr_<contrast>.rds (from 06b_dmrcaller_combine_chr.R)
@@ -130,6 +131,40 @@ for (contrast in CONTRASTS_V) {
 }
 
 
+# Radu item 7: count genes in the chr13 60-80 Mb VPA hyper-DMR hotspot.
+# Uses the annotated CSV already written by the loop above.
+message("\nchr13 60-80 Mb DMR gene annotation (Radu item 7)...")
+chr13_block <- GRanges("chr13", IRanges(60e6, 80e6))
+for (vpa_ct in c("Scramble_VPA_vs_Scramble_CTRL", "ASO_VPA_vs_Scramble_CTRL")) {
+  csv_path <- file.path(OUT_DIR, paste0(vpa_ct, "_annotated.csv"))
+  if (!file.exists(csv_path)) next
+  adf <- read.csv(csv_path, stringsAsFactors=FALSE)
+  adf_gr <- GRanges(adf$seqnames, IRanges(adf$start, adf$end))
+  hits <- subsetByOverlaps(adf_gr, chr13_block)
+  idx  <- queryHits(findOverlaps(adf_gr, chr13_block))
+  sub  <- adf[idx, ]
+  genes_all  <- unique(sub$SYMBOL[!is.na(sub$SYMBOL) & sub$SYMBOL != ""])
+  hyper_sub  <- sub[sub$regionType == "loss", ]
+  genes_hyper <- unique(hyper_sub$SYMBOL[!is.na(hyper_sub$SYMBOL) & hyper_sub$SYMBOL != ""])
+  message(sprintf("  %s: %d DMRs in chr13:60-80Mb | %d unique genes | %d in hyper DMRs",
+                  vpa_ct, nrow(sub), length(genes_all), length(genes_hyper)))
+  out_tab <- data.frame(
+    contrast      = vpa_ct,
+    seqnames      = sub$seqnames,
+    start         = sub$start,
+    end           = sub$end,
+    regionType    = sub$regionType,
+    pValue        = sub$pValue,
+    SYMBOL        = sub$SYMBOL,
+    annotation    = sub$annotation,
+    stringsAsFactors = FALSE
+  )
+  write.csv(out_tab,
+            file.path(OUT_DIR, paste0("chr13_60_80Mb_genes_", vpa_ct, ".csv")),
+            row.names=FALSE)
+  message(sprintf("  genes: %s", paste(sort(genes_hyper), collapse=", ")))
+}
+
 # contrast metadata: condition pairing + label + colours
 CONTRASTS <- list(
   list(name="ASO_CTRL_vs_Scramble_CTRL",
@@ -224,7 +259,7 @@ for (ct in CONTRASTS) {
   p <- ggplot(chr_counts, aes(x=chr, y=Freq_signed, fill=direction)) +
     geom_bar(stat="identity") +
     geom_hline(yintercept=0, linewidth=0.4, colour="grey30") +
-    scale_fill_manual(values=c(Hypo="#4393C3", Hyper="#D6604D")) +
+    scale_fill_manual(values=c(Hypo="#1F3A5F", Hyper="#A84B2F")) +
     scale_y_continuous(labels=function(x) format(abs(x), big.mark=",")) +
     labs(title=paste("DMRs per chromosome:", ct$name),
          x="Chromosome", y="DMRs (hypo below, hyper above)") +
@@ -250,7 +285,7 @@ for (ct in CONTRASTS) {
     geom_vline(xintercept=0, linewidth=0.6, linetype="dashed", colour="grey20") +
     geom_vline(xintercept=c(-0.20, 0.20), linewidth=0.4,
                linetype="dotted", colour="grey50") +
-    scale_fill_manual(values=c(Hypo="#4393C3", Hyper="#D6604D")) +
+    scale_fill_manual(values=c(Hypo="#1F3A5F", Hyper="#A84B2F")) +
     scale_x_continuous(limits=c(-1,1), breaks=seq(-1,1,0.2),
                        labels=scales::percent_format(accuracy=1)) +
     labs(title=paste("Methylation difference:", ct$name),
@@ -335,8 +370,11 @@ message("  set sizes (post-dedup): ",
         paste(colnames(df), colSums(df), sep="=", collapse=", "))
 
 # 3-contrast upset
+# each bar = DMRs present in EXACTLY that combination of sets (not "at least").
+# emit a labelled intersection table alongside so the plot reads without
+# needing prior UpSetR convention knowledge.
 pdf(file.path(OUT_DIR, "dmr_upset_plot.pdf"),
-    width=12, height=7, onefile=FALSE)
+    width=12, height=7.5, onefile=FALSE)
 upset(df,
   sets           = c("Scramble_VPA", "ASO_VPA", "ASO_CTRL"),
   keep.order     = TRUE,
@@ -345,15 +383,66 @@ upset(df,
   main.bar.color = "#2C3E50",
   text.scale     = 1.3,
   mb.ratio       = c(0.55, 0.45),
-  mainbar.y.label = "DMR intersections (n)",
+  mainbar.y.label = "DMRs in exactly this combination (n)",
   sets.x.label    = "DMRs per contrast",
   point.size     = 3,
   line.size      = 1)
 grid::grid.text("DMR overlap, 3 contrasts (cytosinesCount >= 6)",
-  x=0.65, y=0.97,
-  gp=grid::gpar(fontsize=11, fontface="bold", col="#1A2A3A"))
+  x=0.65, y=0.98,
+  gp=grid::gpar(fontsize=12, fontface="bold", col="#1A2A3A"))
+grid::grid.text(
+  "each bar = DMRs in exactly that combo of sets, NOT 'at least'.",
+  x=0.65, y=0.945,
+  gp=grid::gpar(fontsize=9, col="grey30"))
 dev.off()
 message("saved: dmr_upset_plot.pdf")
+
+# labelled intersection table - one row per cell of the upset matrix.
+# answers the "does 151 match anything here?" question directly.
+make_intersection_table <- function(df) {
+  combos <- unique(df)
+  combos$label <- apply(combos, 1, function(r) {
+    on <- names(r)[r == 1]
+    if (length(on) == 0) "(none - shouldnt appear)"
+    else if (length(on) == 1) paste0("only ", on)
+    else paste(on, collapse=" AND ")
+  })
+  combos$n <- sapply(seq_len(nrow(combos)), function(i) {
+    cols <- names(combos)[seq_len(ncol(combos)-1)]
+    sum(apply(df[, cols, drop=FALSE], 1,
+              function(x) all(x == as.integer(combos[i, cols]))))
+  })
+  combos <- combos[combos$n > 0, c("label", "n")]
+  combos <- combos[order(-combos$n), ]
+  combos
+}
+int_tab <- make_intersection_table(df)
+print(int_tab, row.names=FALSE)
+write.table(int_tab,
+  file.path(OUT_DIR, "dmr_upset_intersections.tsv"),
+  sep="\t", quote=FALSE, row.names=FALSE)
+message("saved: dmr_upset_intersections.tsv")
+
+# also emit "at least" totals so users can map either convention.
+at_least_tab <- data.frame(
+  question = c(
+    "ASO_CTRL ∩ ASO_VPA (any, with or without Scramble_VPA)",
+    "ASO_CTRL ∩ Scramble_VPA (any)",
+    "ASO_VPA ∩ Scramble_VPA (any)",
+    "ASO_CTRL ∩ ASO_VPA but NOT Scramble_VPA",
+    "ASO_CTRL ∩ ASO_VPA ∩ Scramble_VPA (all three)"),
+  n = c(
+    sum(df$ASO_CTRL == 1 & df$ASO_VPA == 1),
+    sum(df$ASO_CTRL == 1 & df$Scramble_VPA == 1),
+    sum(df$ASO_VPA == 1 & df$Scramble_VPA == 1),
+    sum(df$ASO_CTRL == 1 & df$ASO_VPA == 1 & df$Scramble_VPA == 0),
+    sum(df$ASO_CTRL == 1 & df$ASO_VPA == 1 & df$Scramble_VPA == 1))
+)
+print(at_least_tab, row.names=FALSE)
+write.table(at_least_tab,
+  file.path(OUT_DIR, "dmr_upset_at_least.tsv"),
+  sep="\t", quote=FALSE, row.names=FALSE)
+message("saved: dmr_upset_at_least.tsv")
 
 # overlap summary table (matches the upset intersections)
 summary_df <- data.frame(
@@ -394,7 +483,7 @@ upset(df5,
   main.bar.color = "#2C3E50",
   text.scale     = 1.3,
   mb.ratio       = c(0.6, 0.4),
-  mainbar.y.label = "DMR intersections (n)",
+  mainbar.y.label = "DMRs in exactly this combination (n)",
   sets.x.label    = "DMRs per contrast")
 grid::grid.text("DMR overlap, 5 contrasts (cytosinesCount >= 6)",
   x=0.65, y=0.985,
@@ -550,8 +639,8 @@ p_dir <- ggplot(dir_df, aes(x=contrast, y=n, fill=direction)) +
                 label=formatC(total, format='d', big.mark=',')),
             inherit.aes=FALSE,
             size=3.2, fontface='bold', colour='grey25') +
-  scale_fill_manual(values=c(Hypomethylated='#2166AC',
-                              Hypermethylated='#B2182B')) +
+  scale_fill_manual(values=c(Hypomethylated='#1F3A5F',
+                              Hypermethylated='#A84B2F')) +
   scale_y_log10(labels=scales::comma,
                 breaks=c(100,1000,10000,100000,1000000),
                 expand=expansion(mult=c(0.02, 0.18))) +
@@ -579,8 +668,8 @@ p_dir_v2 <- ggplot(dir_df_v2, aes(x=contrast, y=n, fill=direction)) +
   geom_text(aes(label=formatC(n, format='d', big.mark=',')),
             position=position_dodge(width=0.7),
             vjust=-0.4, size=3.0, fontface='bold', colour='grey25') +
-  scale_fill_manual(values=c(Hypomethylated='#2166AC',
-                              Hypermethylated='#B2182B')) +
+  scale_fill_manual(values=c(Hypomethylated='#1F3A5F',
+                              Hypermethylated='#A84B2F')) +
   scale_y_continuous(labels=scales::comma,
                      expand=expansion(mult=c(0.01, 0.12))) +
   theme_classic(base_size=12) +
@@ -606,8 +695,10 @@ diverging_df <- dir_df %>%
 log_breaks <- c(10, 100, 1e3, 1e4, 1e5, 1e6)
 break_pos  <- sign(c(-log_breaks, log_breaks)) *
               log10(c(rev(log_breaks), log_breaks) + 1)
-break_lab  <- formatC(c(rev(log_breaks), log_breaks),
-                      format='d', big.mark=',')
+break_lab  <- c(
+  paste0("-", formatC(rev(log_breaks), format='d', big.mark=',')),
+  formatC(log_breaks, format='d', big.mark=',')
+)
 
 p_div <- ggplot(diverging_df,
                 aes(x=contrast, y=y_log, fill=direction)) +
@@ -616,8 +707,8 @@ p_div <- ggplot(diverging_df,
   geom_text(aes(label=formatC(n, format='d', big.mark=','),
                 vjust=ifelse(direction=='Hypomethylated', -0.4, 1.3)),
             size=3.0, fontface='bold', colour='grey25') +
-  scale_fill_manual(values=c(Hypomethylated='#2166AC',
-                              Hypermethylated='#B2182B')) +
+  scale_fill_manual(values=c(Hypomethylated='#1F3A5F',
+                              Hypermethylated='#A84B2F')) +
   scale_y_continuous(breaks=break_pos, labels=break_lab,
                      limits=c(-max(abs(diverging_df$y_log))*1.15,
                                max(abs(diverging_df$y_log))*1.15)) +
@@ -663,8 +754,8 @@ p_viol <- ggplot(violin_dmr, aes(x=contrast, y=meth, fill=direction)) +
   geom_boxplot(width=0.07, fill='white',
                outlier.size=0.2, outlier.alpha=0.2) +
   facet_wrap(~direction, ncol=2) +
-  scale_fill_manual(values=c(Hypomethylated='#2166AC',
-                              Hypermethylated='#B2182B')) +
+  scale_fill_manual(values=c(Hypomethylated='#1F3A5F',
+                              Hypermethylated='#A84B2F')) +
   scale_y_continuous(labels=scales::percent_format(1), limits=c(0,1)) +
   theme_classic(base_size=11) +
   theme(axis.text.x=element_text(angle=45, hjust=1, size=9),
@@ -683,8 +774,8 @@ p_viol_18 <- ggplot(violin_dmr, aes(x=contrast, y=meth, fill=direction)) +
   geom_boxplot(width=0.07, fill='white',
                outlier.size=0.2, outlier.alpha=0.2) +
   facet_wrap(~direction, ncol=2) +
-  scale_fill_manual(values=c(Hypomethylated='#2166AC',
-                              Hypermethylated='#B2182B')) +
+  scale_fill_manual(values=c(Hypomethylated='#1F3A5F',
+                              Hypermethylated='#A84B2F')) +
   scale_y_continuous(labels=scales::percent_format(1), limits=c(0,1)) +
   theme_classic(base_size=11) +
   theme(axis.text.x=element_text(angle=45, hjust=1, size=9),
@@ -693,7 +784,7 @@ p_viol_18 <- ggplot(violin_dmr, aes(x=contrast, y=meth, fill=direction)) +
         plot.subtitle=element_text(size=10, colour='grey30'),
         legend.position='none') +
   labs(title='CpG methylation at DMR loci: hypo vs hyper',
-       subtitle='proportion methylated CpGs, both cond1 and cond2 stacked per DMR',
+       subtitle='proportion methylated CpGs, cond1 and cond2 methylation pooled per DMR',
        x=NULL, y='CpG methylation proportion')
 
 ggsave(file.path(OUT_DIR, 'slide18_violin_hypo_hyper.pdf'),

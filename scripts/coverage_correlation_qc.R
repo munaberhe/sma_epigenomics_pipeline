@@ -39,6 +39,13 @@ message("Pooling all 4 conditions into combined dataset...")
 methylationDataAll <- poolMethylationDatasets(GRangesList(methylationDataPooled))
 
 cbbPalette <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+# project-standard condition colours (must match SAMPLES order)
+COND_COLS <- c(
+  Scramble_CTRL = "#6B7280",
+  Scramble_VPA  = "#F0A500",
+  ASO_CTRL      = "#1B4F8A",
+  ASO_VPA       = "#B2182B"
+)
 
 message("Plotting coverage...")
 pdf(file.path(OUT_DIR, "radu_coverage_pooled.pdf"), width = 9, height = 6)
@@ -48,11 +55,11 @@ plot(breaks, coverage[[1]], type = "n", col = "#1D6FA4", lwd = 2.5,
      ylim = c(0, 1), xlab = "Coverage depth", ylab = "Proportion of CpGs",
      main = "CpG Coverage — All 12 Samples Pooled (chr1)")
 for (i in 1:length(SAMPLES)) {
-  lines(breaks, coverage[[i]], type="l", col=cbbPalette[i], lty=1, lwd=2)
+  lines(breaks, coverage[[i]], type="l", col=COND_COLS[SAMPLES[i]], lty=1, lwd=2)
 }
 abline(v = c(5, 10), lty = 2, col = "grey50")
 legend("topright", legend = SAMPLES,
-       col = cbbPalette[1:length(SAMPLES)], lwd = 2.5, bty = "n")
+       col = COND_COLS[SAMPLES], lwd = 2.5, bty = "n")
 dev.off()
 message("Saved: radu_coverage_pooled.pdf")
 
@@ -112,10 +119,10 @@ plot(distances, rep(NA, length(distances)), type = "n",
 for (i in seq_along(SAMPLES)) {
   cor_i <- computeMethylationDataSpatialCorrelation(
     methylationDataPooled[[SAMPLES[i]]], context = "CG", distances = distances)
-  lines(distances, cor_i, col = cbbPalette[i], lwd = 2)
+  lines(distances, cor_i, col = COND_COLS[SAMPLES[i]], lwd = 2)
 }
 legend("topright", legend = SAMPLES,
-       col = cbbPalette[seq_along(SAMPLES)], lwd = 2, bty = "n")
+       col = COND_COLS[SAMPLES], lwd = 2, bty = "n")
 dev.off()
 message("Saved: radu_spatial_correlation_per_condition.pdf")
 message("All extra plots done.")

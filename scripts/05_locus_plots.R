@@ -4,6 +4,7 @@ suppressPackageStartupMessages({
   library(DMRcaller)
   library(GenomicRanges)
 })
+source("scripts/00_sma_palette.R")
 
 # Low-resolution methylation profiles across all 4 groups.
 # Uses the pooled methylation cache from 07b_dmr_plots.R to avoid re-reading raw files.
@@ -28,42 +29,42 @@ GROUP_LTY <- c(
 )
 GROUPS <- c("ASO_VPA", "ASO_CTRL", "Scramble_VPA", "Scramble_CTRL")
 
-# TIER 1: chromosome overviews (250 kb bins) — chosen by DMR density from chr_dmr_density_50kb.csv
+# TIER 1: chromosome overviews (250 kb bins) - chosen by DMR density from chr_dmr_density_50kb.csv
 # chrX=3.97/Mb (top), chr8=1.74/Mb (CHRNB3), chr13=0.88/Mb (lncRNA hotspot),
 # chr14=1.02/Mb (MTA1-DT), chr5=0.84/Mb (SMN2, primary biological target)
 REGIONS <- list(
   list(region=GRanges("chrX",  IRanges(1, 156040895)),
        window=250000, label="chrX_250kb",
-       title="CpG methylation chrX (250 kb bins) — top DMR density 3.97/Mb"),
+       title="CpG methylation chrX (250 kb bins): top DMR density 3.97/Mb"),
   list(region=GRanges("chr8",  IRanges(1, 145138636)),
        window=250000, label="chr8_250kb",
-       title="CpG methylation chr8 (250 kb bins) — 1.74 DMRs/Mb, CHRNB3 locus"),
+       title="CpG methylation chr8 (250 kb bins): 1.74 DMRs/Mb, CHRNB3 locus"),
   list(region=GRanges("chr13", IRanges(1, 114364328)),
        window=250000, label="chr13_250kb",
-       title="CpG methylation chr13 (250 kb bins) — lncRNA hotspot LINC00391/LMO7"),
+       title="CpG methylation chr13 (250 kb bins): lncRNA hotspot LINC00391/LMO7"),
   list(region=GRanges("chr14", IRanges(1, 107043718)),
        window=250000, label="chr14_250kb",
-       title="CpG methylation chr14 (250 kb bins) — 1.02 DMRs/Mb, MTA1-DT locus"),
+       title="CpG methylation chr14 (250 kb bins): 1.02 DMRs/Mb, MTA1-DT locus"),
   list(region=GRanges("chr5",  IRanges(1, 181538259)),
        window=250000, label="chr5_250kb",
-       title="CpG methylation chr5 (250 kb bins) — SMN2 primary target"),
+       title="CpG methylation chr5 (250 kb bins): SMN2 primary target"),
 
-  # TIER 2: regional zooms (25 kb bins) — centred on known hotspots
+  # TIER 2: regional zooms (25 kb bins) - centred on known hotspots
   list(region=GRanges("chrX",  IRanges(5000000, 30000000)),
        window=25000,  label="chrX_5_30Mb_25kb",
-       title="CpG methylation chrX:5-30 Mb (25 kb bins) — ASO DMR cluster"),
+       title="CpG methylation chrX:5-30 Mb (25 kb bins): ASO DMR cluster"),
   list(region=GRanges("chr8",  IRanges(38000000, 55000000)),
        window=25000,  label="chr8_CHRNB3_25kb",
-       title="CpG methylation chr8:38-55 Mb (25 kb bins) — CHRNB3 region"),
+       title="CpG methylation chr8:38-55 Mb (25 kb bins): CHRNB3 region"),
   list(region=GRanges("chr13", IRanges(55000000, 85000000)),
        window=25000,  label="chr13_hotspot_25kb",
-       title="CpG methylation chr13:55-85 Mb (25 kb bins) — LINC00391/LMO7 hotspot"),
-  list(region=GRanges("chr14", IRanges(100000000, 115000000)),
+       title="CpG methylation chr13:55-85 Mb (25 kb bins): LINC00391/LMO7 hotspot"),
+  list(region=GRanges("chr14", IRanges(100000000, 107000000)),
        window=25000,  label="chr14_MTA1DT_25kb",
-       title="CpG methylation chr14:100-115 Mb (25 kb bins) — MTA1-DT region"),
+       title="CpG methylation chr14:100-107 Mb (25 kb bins): MTA1-DT region"),
   list(region=GRanges("chr5",  IRanges(67000000, 73000000)),
        window=25000,  label="chr5_SMN2_25kb",
-       title="CpG methylation chr5:67-73 Mb (25 kb bins) — SMN2 region")
+       title="CpG methylation chr5:67-73 Mb (25 kb bins): SMN2 region")
 )
 
 CONTRASTS <- list(
@@ -86,7 +87,7 @@ message("  loaded: ", paste(names(meth_pooled), collapse=", "))
 
 for (reg in REGIONS) {
   message("\nregion: ", reg$label)
-
+  
   # compute profile for each group
   prof_list <- list()
   for (g in GROUPS) {
@@ -99,23 +100,26 @@ for (reg in REGIONS) {
     df$group    <- g
     prof_list[[g]] <- df[!is.na(df$meth) & df$sumReadsN >= 3, ]
   }
-
+  
   x_range <- range(unlist(lapply(prof_list, function(d) d$pos)), na.rm=TRUE)
-
+  
   # all-groups plot
   out_pdf <- file.path(OUT_DIR, paste0("lowres_allgroups_", reg$label, ".pdf"))
   pdf(out_pdf, width=10, height=4)
-  par(mar=c(4,4,3,8)+0.1, bg="white", col.axis="black",
+  par(mar=c(4,4,3,9)+0.1, bg="white", col.axis="black",
       col.lab="black", col.main="black", fg="black")
-  plot(NULL, xlim=x_range, ylim=c(0,1),
-       xlab="genomic coordinate", ylab="CpG methylation proportion",
+  plot(NULL, xlim=x_range, ylim=c(0,1), xaxt="n",
+       xlab="genomic coordinate (Mb)", ylab="CpG methylation proportion",
        main=reg$title, cex.main=0.9, font.main=2)
+  # Mb-formatted x-axis, no scientific notation
+  axis_at <- pretty(x_range, n=8)
+  axis(1, at=axis_at, labels=sprintf("%g", axis_at/1e6))
   for (g in GROUPS) {
     d <- prof_list[[g]]
-    if (nrow(d) > 0) lines(d$pos, d$meth, col=GROUP_COLS[g], lwd=1.8, lty=GROUP_LTY[g])
+    if (nrow(d) > 0) lines(d$pos, d$meth, col=GROUP_COLS[g], lwd=2.0, lty=GROUP_LTY[g])
   }
   legend("topright", legend=GROUPS, col=GROUP_COLS[GROUPS], lty=GROUP_LTY[GROUPS],
-         lwd=1.5, bty="n", cex=0.85, xpd=TRUE, inset=c(-0.15,0))
+         lwd=1.8, bty="n", cex=0.85, xpd=TRUE, inset=c(-0.22,0))
   dev.off()
   message("  saved: ", basename(out_pdf))
 
@@ -215,8 +219,8 @@ LOCI <- list(
                         end=numeric(0), is_target=logical(0))),
   list(name="SMN2",      chr="chr5",  start=70044638,  end=70083522,
        contrast="ASO_CTRL_vs_Scramble_CTRL",
-       label="SMN2 therapeutic target (0 DMRs — null result)",
-       annotation="Null result — no DMRs at therapeutic target",
+       label="SMN2 therapeutic target (0 DMRs - null result)",
+       annotation="Null result - no DMRs at therapeutic target",
        gene_start=70049638, gene_end=70078522, strand="-",
        exons=data.frame(label=character(0), start=numeric(0),
                         end=numeric(0), is_target=logical(0)))
@@ -226,12 +230,12 @@ LOCI <- list(
 build_gff <- function(locus) {
   rows <- list()
   rows[[1]] <- data.frame(chr=locus$chr, start=locus$gene_start,
-    end=locus$gene_end, strand=locus$strand, type="gene", name=locus$name)
+                          end=locus$gene_end, strand=locus$strand, type="gene", name=locus$name)
   for (i in seq_len(nrow(locus$exons)))
     rows[[length(rows)+1]] <- data.frame(chr=locus$chr,
-      start=locus$exons$start[i], end=locus$exons$end[i],
-      strand=locus$strand, type="exon",
-      name=paste0(locus$name, "_", locus$exons$label[i]))
+                                         start=locus$exons$start[i], end=locus$exons$end[i],
+                                         strand=locus$strand, type="exon",
+                                         name=paste0(locus$name, "_", locus$exons$label[i]))
   df <- do.call(rbind, rows)
   GRanges(seqnames=df$chr, ranges=IRanges(df$start, df$end),
           strand=df$strand, type=df$type, name=df$name)
@@ -240,6 +244,9 @@ build_gff <- function(locus) {
 plot_one <- function(meth_a, meth_b, ct, locus, dmrs=NULL) {
   region   <- GRanges(locus$chr, IRanges(locus$start, locus$end))
   gff      <- build_gff(locus)
+  # coverage filter: drop CpGs with <10 reads (Radu: filter 1-2 read sites)
+  meth_a <- meth_a[meth_a$readsN >= 10]
+  meth_b <- meth_b[meth_b$readsN >= 10]
   dmrs_arg <- if (!is.null(dmrs) && length(dmrs) > 0) list("DMRs"=dmrs) else NULL
   COLS <- c(ASO_CTRL="#1B4F8A", ASO_VPA="#B2182B",
             Scramble_VPA="#F0A500", Scramble_CTRL="#6B7280")
@@ -258,7 +265,7 @@ plot_one <- function(meth_a, meth_b, ct, locus, dmrs=NULL) {
                                ct$label, locus$label),
     plotMeanLines = TRUE, plotPoints = TRUE
   )
-  # exon labels — staggered to avoid overlap on dense genes
+  # exon labels - staggered to avoid overlap on dense genes
   ex <- locus$exons
   for (i in seq_len(nrow(ex))) {
     mtext(ex$label[i], side=1, at=(ex$start[i]+ex$end[i])/2,
@@ -274,6 +281,9 @@ plot_one <- function(meth_a, meth_b, ct, locus, dmrs=NULL) {
     mtext(locus$annotation, side=3, line=0.2, cex=0.7,
           col="grey40", adj=1)
   }
+  # strand indicator
+  strand_sym <- if (!is.null(locus$strand)) ifelse(locus$strand=="+", "5->3 (+strand)", "3<-5 (-strand)") else ""
+  mtext(strand_sym, side=3, line=1.0, cex=0.7, col="#1F3A5F", adj=0, font=2)
 }
 
 message("loading cached pooled data...")
@@ -289,7 +299,7 @@ for (ct in CONTRASTS) {
   message("  ", ct$name, ": ", length(dmr_results[[ct$name]]), " DMRs")
 }
 
-# individual PDFs — one per locus using its specific contrast
+# individual PDFs - one per locus using its specific contrast
 message("\nindividual locus plots...")
 for (locus in LOCI) {
   ct_name <- locus$contrast
@@ -317,7 +327,7 @@ for (locus in LOCI) {
   }
 }
 
-# combined PDFs — locus-specific contrast only
+# combined PDFs - locus-specific contrast only
 message("\ncombined per-locus PDFs...")
 for (locus in LOCI) {
   ct_name <- locus$contrast

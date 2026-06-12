@@ -8,6 +8,7 @@ suppressPackageStartupMessages({
   library(ggplot2)
   library(dplyr)
 })
+source("scripts/00_sma_palette.R")
 setwd("/data/home/bt25018/sma_epigenomics_pipeline")
 OUT <- "results/dmr_annotation"
 
@@ -108,9 +109,9 @@ p2 <- ggplot(prop_data, aes(x=contrast, y=prop, fill=annot_simple)) +
        x=NULL, y="Proportion of DMRs")
 
 ggsave(file.path(OUT, "DMR_annotation_combined_count.pdf"),
-       p1, width=12, height=6, device=cairo_pdf)
+       p1, width=9, height=6, device=cairo_pdf)
 ggsave(file.path(OUT, "DMR_annotation_combined_proportion.pdf"),
-       p2, width=16, height=6, device=cairo_pdf)
+       p2, width=10, height=6, device=cairo_pdf)
 
 message("Saved: DMR_annotation_combined_count.pdf")
 message("Saved: DMR_annotation_combined_proportion.pdf")

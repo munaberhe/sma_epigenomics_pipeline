@@ -5,6 +5,7 @@ suppressPackageStartupMessages({
   library(ggplot2)
   library(patchwork)
 })
+source("scripts/00_sma_palette.R")
 
 setwd("/data/scratch/bt25018/sma_epigenomics_pipeline")
 
@@ -12,6 +13,7 @@ setwd("/data/scratch/bt25018/sma_epigenomics_pipeline")
 # detailed view via DMRcaller::plotLocalMethylationProfile.
 # smoothed overview via computeMethylationProfile.
 # replicates pooled per condition before plotting.
+# sensitive DMR overlays loaded from results/smn2_local_dmr/.
 
 # ---- paths ----
 CHR5_MASKED   <- "results/alignments_smn1_masked/chr5_cx"
@@ -126,9 +128,9 @@ read_masked_cpg <- function(condition) {
     path <- file.path(CHR5_MASKED,
                       paste0(condition,"_",r,"_chr5.CX_report.txt"))
     d <- read.table(path, header=FALSE, sep="\t",
-      col.names=c("chr","pos","strand","countM","countU","context","tri"),
-      colClasses=c("character","integer","character","integer",
-                   "integer","character","character"))
+                    col.names=c("chr","pos","strand","countM","countU","context","tri"),
+                    colClasses=c("character","integer","character","integer",
+                                 "integer","character","character"))
     d <- d[d$context=="CG", ]
     GRanges(seqnames=d$chr, ranges=IRanges(d$pos,d$pos), strand=d$strand,
             readsM=d$countM, readsN=d$countM+d$countU,
@@ -144,9 +146,9 @@ read_unmasked_cpg <- function(condition) {
   files <- files[file.exists(files)]
   grs <- lapply(files, function(f) {
     d <- read.table(gzfile(f), header=FALSE, sep="\t",
-      col.names=c("chr","pos","strand","countM","countU","context","tri"),
-      colClasses=c("character","integer","character","integer",
-                   "integer","character","character"))
+                    col.names=c("chr","pos","strand","countM","countU","context","tri"),
+                    colClasses=c("character","integer","character","integer",
+                                 "integer","character","character"))
     GRanges(seqnames=d$chr, ranges=IRanges(d$pos,d$pos), strand=d$strand,
             readsM=d$countM, readsN=d$countM+d$countU,
             context=d$context, trinucleotide_context=d$tri)
@@ -155,25 +157,32 @@ read_unmasked_cpg <- function(condition) {
 }
 
 # ---- detailed locus panel via DMRcaller ----
-# plotPoints=FALSE: keep solid lines only, per plot convention.
+# plotPoints=TRUE: overlay raw per-CpG dots on the smoothed lines so reviewers
+# can see read depth + variance at each cytosine. lines are 300bp binned means.
 plot_one <- function(pooled, comp, locus_name, dmrs=NULL) {
   locus  <- LOCI[[locus_name]]
   region <- GRanges(seqnames=locus$chr,
                     ranges=IRanges(locus$start-FLANK, locus$end+FLANK))
+  n_dmr <- if(!is.null(dmrs)) length(dmrs) else 0
+  # filter low-coverage CpGs: keep only sites with >=10 reads (Radu)
+  m1 <- pooled[[comp$cond1]]; m1 <- m1[m1$readsN >= 10]
+  m2 <- pooled[[comp$cond2]]; m2 <- m2[m2$readsN >= 10]
   plotLocalMethylationProfile(
-    methylationData1 = pooled[[comp$cond1]],
-    methylationData2 = pooled[[comp$cond2]],
+    methylationData1 = m1,
+    methylationData2 = m2,
     region           = region,
-    DMRs             = if(!is.null(dmrs)) list("DMRs"=dmrs) else NULL,
+    DMRs             = if(n_dmr > 0) list("sensitive DMRs"=dmrs) else NULL,
     conditionsNames  = c(comp$cond1, comp$cond2),
     gff              = GEs,
     windowSize       = WIN_SIZE,
     context          = "CG",
     col              = c(COND_COLOURS[comp$cond1], COND_COLOURS[comp$cond2],
-                           "#FFFFFF", "#FFFFFF", "#009E73"),
-    main             = sprintf("%s: %s vs %s", locus_name, comp$cond1, comp$cond2),
+                         "#A84B2F33", "#A84B2F", "#009E73"),
+    main             = sprintf("%s: %s vs %s (%s) - %d sensitive DMRs",
+                               locus_name, comp$cond1, comp$cond2,
+                               comp$label, n_dmr),
     plotMeanLines    = TRUE,
-    plotPoints       = FALSE
+    plotPoints       = TRUE
   )
   ex <- EXONS[[locus_name]]
   for (i in seq_len(nrow(ex))) {
@@ -193,11 +202,11 @@ for (alignment in c("masked","unmasked")) {
   reader <- if(alignment=="masked") read_masked_cpg else read_unmasked_cpg
   pooled <- lapply(NEEDED, reader)
   names(pooled) <- NEEDED
-
+  
   for (ct in COMPARISONS) {
     fname <- sprintf("SMN_locus_%s_%s.pdf", alignment, ct$name)
     message("  plotting: ", fname)
-    h  <- if(alignment=="masked") 6 else 8.5
+    h  <- if(alignment=="masked") 7 else 9.5
     nr <- if(alignment=="masked") 1 else 2
     cairo_pdf(file.path(OUT_DIR, fname), width=11, height=h)
     par(mfrow=c(nr,1), mar=c(5,4,3,1)+0.1, cex=0.9,
@@ -209,7 +218,7 @@ for (alignment in c("masked","unmasked")) {
     plot_one(pooled, ct, "SMN2", dmrs=dmrs_arg)
     dev.off()
   }
-
+  
   # combined PDF, all comparisons
   fname_all <- sprintf("SMN_locus_%s_all_comparisons.pdf", alignment)
   message("  plotting combined: ", fname_all)
@@ -217,7 +226,7 @@ for (alignment in c("masked","unmasked")) {
   n_panels <- length(COMPARISONS) * n_loci
   n_cols   <- 2
   n_rows   <- ceiling(n_panels / n_cols)
-  cairo_pdf(file.path(OUT_DIR, fname_all), width=11, height=n_rows*3.5)
+  cairo_pdf(file.path(OUT_DIR, fname_all), width=16, height=n_rows*4.5)
   par(mfrow=c(n_rows, n_cols), mar=c(5,4,3,1)+0.1, cex=0.7,
       bg="white", col.axis="black", col.lab="black",
       col.main="black", fg="black")
@@ -240,7 +249,7 @@ for (cond in NEEDED) {
     l   <- LOCI[[ln]]
     gr  <- masked_pooled[[cond]]
     sel <- as.character(seqnames(gr))==l$chr &
-           start(gr)>=l$start & start(gr)<=l$end & gr$readsN>0
+      start(gr)>=l$start & start(gr)<=l$end & gr$readsN>0
     g   <- gr[sel]
     rows[[length(rows)+1]] <- data.frame(
       condition=cond, locus=ln, n_cpg=length(g),
@@ -257,6 +266,7 @@ write.table(df, file.path(OUT_DIR, "SMN_weighted_mean_masked.tsv"),
 # build smoothed profile per condition, sorted by genomic position.
 # previous version returned rows in whatever order computeMethylationProfile
 # emitted; geom_line then drew diagonals between non-adjacent bins (spaghetti).
+# windowSize=300 here matches the detailed plot above so smoothing is consistent.
 load_smn2_lowres <- function(alignment) {
   reader <- if(alignment=="masked") read_masked_cpg else read_unmasked_cpg
   pooled <- lapply(NEEDED, reader)
@@ -284,13 +294,13 @@ df_masked   <- load_smn2_lowres("masked")
 df_unmasked <- load_smn2_lowres("unmasked")
 df_both <- rbind(df_masked, df_unmasked)
 df_both$condition <- factor(df_both$condition,
-  levels=c("ASO_CTRL","Scramble_CTRL","ASO_VPA","Scramble_VPA"))
+                            levels=c("ASO_CTRL","Scramble_CTRL","ASO_VPA","Scramble_VPA"))
 
 # solid lines for all conditions (no dashes). group= ensures lines are drawn
 # per-condition rather than connecting across conditions at the same x.
 make_panel <- function(df, title) {
   df$condition <- factor(df$condition,
-    levels=c("ASO_CTRL","Scramble_CTRL","ASO_VPA","Scramble_VPA"))
+                         levels=c("ASO_CTRL","Scramble_CTRL","ASO_VPA","Scramble_VPA"))
   ex7_s <- EXONS[["SMN2"]][EXONS[["SMN2"]]$is_target, "start"]
   ex7_e <- EXONS[["SMN2"]][EXONS[["SMN2"]]$is_target, "end"]
   ggplot(df, aes(x=pos, y=meth, colour=condition, group=condition)) +

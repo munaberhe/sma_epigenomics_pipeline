@@ -5,6 +5,7 @@ suppressPackageStartupMessages({
   library(ggplot2)
   library(patchwork)
 })
+source("scripts/00_sma_palette.R")
 setwd("/data/home/bt25018/sma_epigenomics_pipeline")
 
 # ---- H3K9me2 enrichment at ASO DMRs ----
@@ -252,7 +253,7 @@ p_delta <- ggplot(delta_df, aes(x=group, y=delta, fill=group)) +
        x=NULL, y="Delta H3K9me2 signal (ASO - CTR)")
 
 ggsave(file.path(OUT_DIR, "h3k9me2_delta_signal.pdf"),
-       p_delta, width=6.5, height=6, device=cairo_pdf)
+       p_delta, width=10, height=6, device=cairo_pdf)
 message("saved: h3k9me2_delta_signal.pdf")
 
 # ---- SMN2 locus spot check ----

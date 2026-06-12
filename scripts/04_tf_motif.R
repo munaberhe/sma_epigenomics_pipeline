@@ -8,6 +8,7 @@ suppressPackageStartupMessages({
   library(ggplot2)
   library(ggrepel)
 })
+source("scripts/00_sma_palette.R")
 setwd("/data/home/bt25018/sma_epigenomics_pipeline")
 
 # ---- TF motif enrichment at ASO DMR sequences ----
@@ -42,43 +43,48 @@ report <- groupReport(res)
 saveRDS(report, file.path(OUT_DIR, "pwmenrich_report.rds"))
 
 report_df <- as.data.frame(report)
+# filter out unannotated MotifDb entries (UW.Motif.xxxx have no TF name)
 write.csv(report_df, file.path(OUT_DIR, "pwmenrich_top_motifs.csv"),
           row.names=FALSE)
 message("top 20 motifs:")
 print(head(report_df[, c("target","raw.score","p.value")], 20),
       row.names=FALSE)
 
-N <- 30
+# use named-TF-only report (filter UW.Motif.xxxx unannotated entries)
+report_named <- report[!grepl("^UW\\.Motif\\.", as.data.frame(report)$target), ]
+N <- min(30, length(report_named))
 pdf(file.path(OUT_DIR, "pwmenrich_top30_report.pdf"), width=11, height=max(8, N * 0.35))
-plot(report[1:N])
-dev.off()
+plot(report_named[1:N])
 
 # ---- volcano ----
 # nothing crosses p=0.05 in current run; volcano still useful to show
 # distribution + top hits. Use ggrepel to keep labels readable.
-report_df$neg_log_p <- -log10(report_df$p.value + 1e-10)
+report_df$neg_log_p <- -log10(pmax(report_df$p.value, 1e-300))
 
 # soft-flag SMA-relevant TFs: motor neuron + general neural development
 neural_tfs <- c("ISL1","ISL2","NEUROD","ROBO","ASCL","OLIG","NKX","MNX",
                 "SOX10","PAX6","NHLH","HB9","CHAT")
 report_df$highlight <- sapply(report_df$target, function(t)
   any(sapply(neural_tfs, function(tf) grepl(tf, t, ignore.case=TRUE))))
+# filter after highlight is computed so report_df_named inherits the column
+report_df_named <- report_df[!grepl("^UW[.]Motif[.]", report_df$target), ]
+message("  named TF motifs: ", nrow(report_df_named), " / ", nrow(report_df), " total")
 
 # label both top neural hits and overall top-N
-top_overall <- head(report_df[order(report_df$p.value), ], 8)
-top_neural  <- head(report_df[report_df$highlight, ][
-                    order(report_df$p.value[report_df$highlight]), ], 5)
+top_overall <- head(report_df_named[!grepl("CENPB", report_df_named$target, ignore.case=TRUE), ][order(report_df_named$p.value[!grepl("CENPB", report_df_named$target, ignore.case=TRUE)]), ], 15)
+top_neural  <- head(report_df_named[report_df_named$highlight, ][
+                    order(report_df_named$p.value[report_df_named$highlight]), ], 5)
 label_df <- unique(rbind(top_overall, top_neural))
 
 
-p_vol <- ggplot(report_df, aes(x=pmax(raw.score, 0.01), y=neg_log_p)) +
+p_vol <- ggplot(report_df, aes(x=raw.score, y=neg_log_p)) +
   geom_point(aes(colour=highlight), size=1.4, alpha=0.6) +
   scale_colour_manual(values=c("FALSE"="#cccccc","TRUE"="#2E9B6F"),
                       labels=c("other","neural TFs"),
                       name=NULL) +
   geom_hline(yintercept=-log10(0.05), linetype="dashed",
              colour="grey50", linewidth=0.5) +
-  geom_text_repel(data=label_df, aes(x=pmax(raw.score, 0.01), label=target, colour=highlight),
+  geom_text_repel(data=label_df, aes(x=raw.score, label=target, colour=highlight),
                   size=3, max.overlaps=Inf, min.segment.length=0,
                   segment.colour="grey60", segment.size=0.3,
                   box.padding=0.4, point.padding=0.3,

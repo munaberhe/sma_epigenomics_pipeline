@@ -13,6 +13,7 @@ suppressPackageStartupMessages({
   library(lattice)
   library(AnnotationHub)
 })
+source("scripts/00_sma_palette.R")
 setwd('/data/home/bt25018/sma_epigenomics_pipeline')
 OUT <- 'results/dmr_annotation'
 
@@ -204,16 +205,23 @@ ggsave(file.path(OUT, "bock_panelC_cpg_bar.pdf"),
        p_cpg_bar, width=8, height=4, device=cairo_pdf)
 
 # heatmap: enlarge canvas so the cell labels and colour key are readable
-pdf(file.path(OUT, "bock_panelC_cpg_heatmap.pdf"), width=7, height=4)
-print(levelplot(t(log2_cpg),
-                at=custom_at, col.regions=cols_contrast,
-                main=list(label="CpG context log2(obs/exp)", cex=0.95),
-                xlab="", ylab="",
-                colorkey=list(space="right",
-                              labels=list(at=seq(-LOG2_LIM, LOG2_LIM, 0.5))),
-                scales=list(x=list(rot=45, cex=0.85),
-                            y=list(cex=0.85))))
-dev.off()
+log2_cpg_df <- as.data.frame(log2_cpg) %>%
+  rownames_to_column("contrast") %>%
+  pivot_longer(-contrast, names_to="context", values_to="log2oe")
+log2_cpg_df$contrast <- factor(log2_cpg_df$contrast, levels=LABELS)
+log2_cpg_df$context  <- factor(log2_cpg_df$context, levels=c("Island","Shore","Shelf","Open_Sea"))
+p_cpg_heat <- ggplot(log2_cpg_df, aes(x=context, y=contrast, fill=log2oe)) +
+  geom_tile(colour="white", linewidth=0.4) +
+  geom_text(aes(label=sprintf("%+.2f", log2oe)), size=3, colour="black") +
+  sma_heatmap_scale(limits=c(-1.5,1.5)) +
+  theme_minimal(base_size=10) +
+  theme(axis.text.x=element_text(angle=30, hjust=1),
+        panel.grid=element_blank(),
+        plot.title=element_text(face="bold"),
+        plot.margin=margin(15,20,15,15)) +
+  labs(title="CpG context log2(observed/expected)", x=NULL, y=NULL)
+ggsave(file.path(OUT, "bock_panelC_cpg_heatmap.pdf"),
+       p_cpg_heat, width=8, height=5, device=cairo_pdf)
 
 # Panel D: genomic feature stacked bar ----
 feat_prop <- as.data.frame(feat_mat) %>%
@@ -238,15 +246,23 @@ ggsave(file.path(OUT, "bock_panelD_feat_bar.pdf"),
        p_feat_bar, width=8, height=4, device=cairo_pdf)
 
 # wider heatmap (7 categories needs more horizontal space)
-pdf(file.path(OUT, "bock_panelD_feat_heatmap.pdf"), width=9, height=4)
-print(levelplot(t(log2_feat),
-                at=custom_at, col.regions=cols_contrast,
-                main=list(label="Genomic feature log2(obs/exp)", cex=0.95),
-                xlab="", ylab="",
-                colorkey=list(space="right",
-                              labels=list(at=seq(-LOG2_LIM, LOG2_LIM, 0.5))),
-                scales=list(x=list(rot=45, cex=0.85),
-                            y=list(cex=0.85))))
-dev.off()
+log2_feat_df <- as.data.frame(log2_feat) %>%
+  rownames_to_column("contrast") %>%
+  pivot_longer(-contrast, names_to="feature", values_to="log2oe")
+log2_feat_df$contrast <- factor(log2_feat_df$contrast, levels=LABELS)
+log2_feat_df$feature  <- factor(log2_feat_df$feature,
+  levels=c("Promoter","5' UTR","Exon","Intron","3' UTR","Downstream","Intergenic"))
+p_feat_heat <- ggplot(log2_feat_df, aes(x=feature, y=contrast, fill=log2oe)) +
+  geom_tile(colour="white", linewidth=0.4) +
+  geom_text(aes(label=sprintf("%+.2f", log2oe)), size=3, colour="black") +
+  sma_heatmap_scale(limits=c(-1.5,1.5)) +
+  theme_minimal(base_size=10) +
+  theme(axis.text.x=element_text(angle=30, hjust=1),
+        panel.grid=element_blank(),
+        plot.title=element_text(face="bold"),
+        plot.margin=margin(15,20,15,15)) +
+  labs(title="Genomic feature log2(observed/expected)", x=NULL, y=NULL)
+ggsave(file.path(OUT, "bock_panelD_feat_heatmap.pdf"),
+       p_feat_heat, width=10, height=5, device=cairo_pdf)
 
 message("All Bock-style plots saved to: ", OUT)

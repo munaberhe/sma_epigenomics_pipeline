@@ -13,6 +13,10 @@ combos <- combos[!(combos$method=="neighbourhood" &
                    combos$window_size != window_sizes[1]), ]
 combos <- combos[!(combos$method=="noise_filter" & combos$strict==FALSE), ]
 
+if (TASK_ID > nrow(combos)) {
+  message("TASK_ID ", TASK_ID, " exceeds combo table (nrow=", nrow(combos), ") -- skipping")
+  quit(status=0)
+}
 method <- combos$method[TASK_ID]
 ws     <- combos$window_size[TASK_ID]
 strict <- combos$strict[TASK_ID]
