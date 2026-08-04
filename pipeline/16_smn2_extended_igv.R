@@ -8,7 +8,7 @@ suppressPackageStartupMessages({
 })
 setwd("/gpfs/scratch/bt25018/sma_epigenomics_pipeline")
 
-OUT <- "results/figures/smn2_extended_igv"
+OUT <- "results/thesis_figures/smn2_extended_igv"
 dir.create(OUT, recursive=TRUE, showWarnings=FALSE)
 
 
@@ -25,11 +25,11 @@ COND_COLS <- c(
   ASO_VPA       = "#C0392B",
   Scramble_VPA  = "#F0A500"
 )
-ENH_H9_COL    <- "#E69F00"
-ENH_CCRE_COL  <- "#56B4E9"
-CGI_COL       <- "#A8D5E2"
-H3K27_CTRL    <- "#4E9EC7"
-H3K27_VPA     <- "#8E44AD"
+ENH_H9_COL    <- "#D4820A"
+ENH_CCRE_COL  <- "#0072B2"
+CGI_COL       <- "#2196A6"
+H3K27_CTRL    <- "#1F3A5F"
+H3K27_VPA     <- "#6B2D8B"
 DMR_COL       <- "#E31A1C"
 
 
@@ -76,7 +76,7 @@ CONTRASTS <- list(
   list(name="ASO_CTRL_vs_Scramble_CTRL", label="ASO alone",      col="#1F3A5F"),
   list(name="Scramble_VPA_vs_Scramble_CTRL", label="VPA alone",  col="#F0A500"),
   list(name="ASO_VPA_vs_Scramble_VPA",   label="ASO in VPA",     col="#C0392B"),
-  list(name="ASO_VPA_vs_ASO_CTRL",       label="VPA in ASO",     col="#8E44AD")
+  list(name="ASO_VPA_vs_ASO_CTRL",       label="VPA in ASO",     col="#F0A500")
 )
 dmr_list <- lapply(CONTRASTS, function(ct) {
   rds <- paste0("results/dmr/dmr_", ct$name, ".rds")
@@ -122,33 +122,33 @@ make_igv_plot <- function(outfile, title) {
     plot.params = pp
   )
 
-  kpAddBaseNumbers(kp, tick.dist=50000, minor.tick.dist=10000, cex=0.7)
+  kpAddBaseNumbers(kp, tick.dist=10000, minor.tick.dist=5000, cex=0.8)
 
   
   # CpG islands
   if (length(cgi) > 0)
     kpPlotRegions(kp, data=cgi, col=CGI_COL, border=NA, r0=0.93, r1=0.98)
-  kpAddLabels(kp, "CpG islands", r0=0.93, r1=0.98, cex=0.7, col=CGI_COL)
+  kpAddLabels(kp, "CpG islands", r0=0.93, r1=0.98, cex=1.0, col=CGI_COL)
 
   # H9 enhancers
   if (length(h9_enh) > 0)
     kpPlotRegions(kp, data=h9_enh, col=ENH_H9_COL, border=NA, r0=0.86, r1=0.91)
-  kpAddLabels(kp, "H9 ESC enh", r0=0.86, r1=0.91, cex=0.7, col=ENH_H9_COL)
+  kpAddLabels(kp, "H9 ESC enh", r0=0.86, r1=0.91, cex=1.0, col=ENH_H9_COL)
 
   # ENCODE cCREs
   if (length(ccre) > 0)
     kpPlotRegions(kp, data=ccre, col=ENH_CCRE_COL, border=NA, r0=0.79, r1=0.84)
-  kpAddLabels(kp, "ENCODE cCRE", r0=0.79, r1=0.84, cex=0.7, col=ENH_CCRE_COL)
+  kpAddLabels(kp, "ENCODE cCRE", r0=0.79, r1=0.84, cex=1.0, col=ENH_CCRE_COL)
 
   # H3K27ac CTRL
   if (length(h3k27_ctrl) > 0)
     kpPlotRegions(kp, data=h3k27_ctrl, col=H3K27_CTRL, border=NA, r0=0.72, r1=0.77)
-  kpAddLabels(kp, "H3K27ac CTRL", r0=0.72, r1=0.77, cex=0.7, col=H3K27_CTRL)
+  kpAddLabels(kp, "H3K27ac CTRL", r0=0.72, r1=0.77, cex=1.0, col=H3K27_CTRL)
 
   # H3K27ac VPA
   if (length(h3k27_vpa) > 0)
     kpPlotRegions(kp, data=h3k27_vpa, col=H3K27_VPA, border=NA, r0=0.65, r1=0.70)
-  kpAddLabels(kp, "H3K27ac VPA", r0=0.65, r1=0.70, cex=0.7, col=H3K27_VPA)
+  kpAddLabels(kp, "H3K27ac VPA", r0=0.65, r1=0.70, cex=1.0, col=H3K27_VPA)
 
   
   dmr_r0 <- c(0.57, 0.49, 0.41, 0.33)
@@ -161,18 +161,18 @@ make_igv_plot <- function(outfile, title) {
       dmrs_wide <- dmrs
       start(dmrs_wide) <- pmax(1, start(dmrs_wide) - 5000)
       end(dmrs_wide)   <- end(dmrs_wide) + 5000
-      kpPlotRegions(kp, data=dmrs_wide, col=adjustcolor(ct$col, 0.7),
-                    border=ct$col, r0=dmr_r0[i], r1=dmr_r1[i])
+      kpPlotRegions(kp, data=dmrs_wide, col=adjustcolor(ct$col, 0.85),
+                    border=ct$col, lwd=1.5, r0=dmr_r0[i], r1=dmr_r1[i])
     }
     kpAddLabels(kp, ct$label, r0=dmr_r0[i], r1=dmr_r1[i],
-                cex=0.7, col=ct$col)
+                cex=1.0, col=ct$col)
   }
 
   
   library(DMRcaller)
   for (cond in names(COND_COLS)) {
     tryCatch({
-      win <- if (width(REGION) > 100000) 5000 else 1000
+      win <- 1000
       prof <- computeMethylationProfile(meth_cache[[cond]], REGION,
                                         windowSize=win, context="CG")
       df   <- as.data.frame(prof)
@@ -185,7 +185,7 @@ make_igv_plot <- function(outfile, title) {
               col=COND_COLS[cond], lwd=2.0, r0=0.0, r1=0.30)
     }, error=function(e) message("  meth profile failed for ", cond, ": ", e$message))
   }
-  kpAddLabels(kp, "CpG methylation", r0=0.0, r1=0.30, cex=0.7, col="grey30")
+  kpAddLabels(kp, "CpG methylation", r0=0.0, r1=0.30, cex=1.0, col="grey30")
   kpAxis(kp, r0=0.0, r1=0.30, ymin=0, ymax=1, numticks=3, cex=0.6)
 
   # Legend
@@ -200,10 +200,7 @@ make_igv_plot <- function(outfile, title) {
   message("Saved: ", basename(outfile))
 }
 
-make_igv_plot(
-  file.path(OUT, "SMN2_extended_IGV_200kb.pdf"),
-  "SMN2 extended locus (±200kb) — methylation + DMRs + enhancers"
-)
+# 200kb version skipped — too sparse at this scale
 
 # Also make a tighter version ±50kb
 REGION_TIGHT <- GRanges("chr5", IRanges(SMN2_START - 50000, SMN2_END + 50000))
@@ -218,7 +215,7 @@ REGION       <- REGION_TIGHT
 
 make_igv_plot(
   file.path(OUT, "SMN2_extended_IGV_50kb.pdf"),
-  "SMN2 extended locus (±50kb) — methylation + DMRs + enhancers"
+  "SMN2 locus (±50kb): CpG methylation, DMRs, H3K27ac and regulatory elements"
 )
 
 message("All done.")
