@@ -34,43 +34,73 @@ Four pairwise contrasts isolating each treatment effect:
 
 ```
 sma_epigenomics_pipeline/
-├── pipeline/           # Active analysis scripts (00-22)
-├── smn2/               # SMN2-specific sensitive DMR scan
-├── thesis_figures/     # Thesis figure generation
-├── configs/            # SLURM profile and pipeline config
-└── environment.yml     # Conda environment
+├── pipeline/
+│   ├── canonical/          # Trimming, alignment, dedup, extraction (unmasked)
+│   ├── smn1_masked/        # SMN2 locus analysis using SMN1-masked reference
+│   ├── smn2_predup/        # SMN2 coverage gap investigation (no deduplication)
+│   └── utils/              # Shared colour palette
+├── smn2/                   # SMN2-specific sensitive DMR scan
+├── thesis_figures/         # Thesis figure generation
+├── configs/                # SLURM profile and pipeline config
+└── environment.yml         # Conda environment
 ```
 
 ---
 
 ## Pipeline Scripts
 
+### Alignment — Canonical Unmasked (pipeline/canonical/)
+
 | Script | Description |
 |--------|-------------|
-| `00_genome_prep.sh` | Download hg38, build SMN1-masked Bismark index |
-| `00_sma_palette.R` | Canonical colour palette (single source of truth) |
-| `01_trim_array.sh` | Trim Galore array job (12 samples) |
-| `01_qc.R` | PCA, M-bias, duplication rates, bisulfite conversion, coverage |
-| `02_align_array.sh` | Bismark paired-end alignment array job |
-| `02_dmr_calling.R` | Per-chromosome DMR calling via DMRcaller |
-| `02_dmr_annotate.R` | ChIPseeker annotation + GO/KEGG enrichment |
-| `03_extract_array.sh` | Bismark methylation extraction + CX report |
-| `03_combine_tested_windows.R` | Combine per-chromosome tested windows for background |
+| `00_genome_prep.sh` | Download hg38 GRCh38, build Bismark bisulfite index |
+| `01_trim_array.sh` | Trim Galore paired-end array job (12 samples, 6 at a time) |
+| `02_align_array.sh` | Bismark paired-end alignment array job (12 samples, 3 at a time) |
+| `03_dedup_extract_array.sh` | Deduplicate BAMs, extract methylation, split CX report by chromosome |
+
+### Alignment — SMN1-Masked (pipeline/smn1_masked/)
+
+| Script | Description |
+|--------|-------------|
+| `align_00_smn_reference.sh` | Download SMN1/SMN2 sequences and build masked reference |
+| `align_01_mask_index.sh` | Build Bismark index on SMN1-masked hg38 |
+| `align_02_bismark.sh` | Align all 12 samples to SMN1-masked reference |
+| `align_03_dedup_extract.sh` | Deduplicate and extract methylation from masked BAMs |
+| `align_04_split_chr.sh` | Split CX reports by chromosome, retain CpG context only |
+
+### SMN2 Coverage Gap Investigation (pipeline/smn2_predup/)
+
+| Script | Description |
+|--------|-------------|
+| `03_extract_array.sh` | Extract methylation without deduplication to assess coverage gap |
+
+### Downstream Analysis (pipeline/)
+
+| Script | Description |
+|--------|-------------|
+| `utils/00_sma_palette.R` | Canonical colour palette (single source of truth for all figures) |
+| `01_qc.R` | PCA, M-bias, duplication rates, bisulfite conversion, coverage curves |
+| `02_dmr_calling.R` | Per-chromosome DMR calling via DMRcaller (called by dmrcaller_by_chr.R) |
+| `02_dmr_annotate.R` | ChIPseeker annotation + GO/KEGG enrichment for all four contrasts |
+| `03_combine_tested_windows.R` | Combine per-chromosome tested windows for annotation background |
 | `04_check_outputs.sh` | Verify all expected output files exist |
-| `dmrcaller_by_chr.R` | DMRcaller SLURM array worker |
-| `07_grant_fig1cd_annotation_obsexp.R` | Obs/exp annotation enrichment + permutation test |
+| `dmrcaller_by_chr.R` | DMRcaller SLURM array worker (one job per contrast per chromosome) |
+| `06_grant_fig1a_sd_density.R` | SD density plot of methylation variability across conditions |
+| `06_tss_heatmap.R` | TSS methylation heatmap |
+| `07_grant_fig1cd_annotation_obsexp.R` | Obs/exp genomic annotation enrichment + 1000 permutation test |
+| `08_grant_fig2a_motif_venn_logos.R` | TF motif Venn diagram and sequence logos |
 | `10_dmr_significance_plots.R` | DMR count summaries and significance plots |
-| `11_volcano_plots.R` | Methylation difference volcano plots |
-| `12_circos_ideogram.R` | Circos and diverging bar chromosome plots |
-| `13_mds_dmrsize.R` | MDS from methylation correlation + DMR size distributions |
-| `14_upset_pairwise.R` | UpSet plot of DMR overlap across four contrasts |
-| `15_gokegg_pairwise.R` | GO/KEGG combined panels for all four contrasts |
-| `16_smn2_extended_igv.R` | SMN2 extended locus: methylation, DMRs and regulatory elements |
-| `17_pairwise_context_scan.R` | ASO/VPA context-dependent DMR scan |
-| `18_relevance_scoring.R` | Candidate gene relevance scoring |
+| `11_volcano_plots.R` | Methylation difference volcano plots per contrast |
+| `12_circos_ideogram.R` | Circos ideogram and diverging bar chromosome plots |
+| `13_mds_dmrsize.R` | MDS from pooled methylation correlation + DMR size distributions |
+| `14_upset_pairwise.R` | UpSet plot of DMR overlap across four pairwise contrasts |
+| `15_gokegg_pairwise.R` | GO/KEGG pathway enrichment panels for all four contrasts |
+| `16_smn2_extended_igv.R` | SMN2 extended locus: methylation, DMRs, H3K27ac and regulatory elements |
+| `17_pairwise_context_scan.R` | ASO/VPA context-dependent DMR scan and synergy scoring |
+| `18_relevance_scoring.R` | Candidate gene relevance scoring and bubble chart |
 | `20_master_locus_plots.R` | All candidate gene locus plots (18 genes, 4 contrasts each) |
-| `21_smn2_predup_dmr.R` | Pre-deduplication SMN2 DMR analysis |
-| `22_smn2_predup_locus_plots.R` | SMN2 locus plots using pre-dedup masked data |
+| `21_smn2_predup_dmr.R` | DMR calling on pre-dedup masked data for SMN2 coverage analysis |
+| `22_smn2_predup_locus_plots.R` | SMN2 locus plots using pre-dedup masked alignments |
 | `smn2/07_smn2_sensitive.R` | Sensitive SMN2 DMR scan (minDiff=5%, minCyto=3) |
 
 ---
@@ -149,16 +179,16 @@ BiocManager::install(c(
 
 ```bash
 # 1. Prepare genome
-sbatch pipeline/00_genome_prep.sh
+sbatch pipeline/canonical/00_genome_prep.sh
 
 # 2. Trim
-sbatch pipeline/01_trim_array.sh
+sbatch pipeline/canonical/01_trim_array.sh
 
 # 3. Align
-sbatch pipeline/02_align_array.sh
+sbatch pipeline/canonical/02_align_array.sh
 
-# 4. Extract methylation
-sbatch pipeline/03_extract_array.sh
+# 4. Deduplicate and extract methylation
+sbatch pipeline/canonical/03_dedup_extract_array.sh
 
 # 5. Call DMRs per chromosome then combine
 sbatch --array=1-24 pipeline/dmrcaller_by_chr.R
