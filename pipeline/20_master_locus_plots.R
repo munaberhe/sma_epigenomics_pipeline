@@ -1,9 +1,15 @@
 #!/usr/bin/env Rscript
 # ============================================================================
 # 20_master_locus_plots.R
-# Single script for ALL locus plots - SMN2, SMN2 sensitive, survivors,
-# SEMA3C/SIGMAR1, and new pairwise candidates.
-# One plot_one function, one palette, one DMR overdraw method.
+# Generates all CpG methylation locus plots for the thesis.
+# Sections:
+#   1. SMN2 locus (masked reference, 4 pairwise contrasts)
+#   2. SMN2 sensitive scan (relaxed parameters, 4 contrasts)
+#   3. Gene locus helper function
+#   4. Pairwise synergy candidates (8 genes in both ASO and VPA context-dependent lists)
+#   5. Pairwise context-dependent candidates (9 genes, ASO or VPA specific)
+# All candidate coordinates taken from pairwise_context_scan scored CSVs.
+# Usage: sbatch --mem=64G --wrap="Rscript scripts/pipeline/20_master_locus_plots.R"
 # ============================================================================
 .libPaths(c("~/R/library", .libPaths()))
 suppressPackageStartupMessages({
@@ -135,6 +141,8 @@ plot_one <- function(meth_a, meth_b, ct, region, gff, title,
            border  = DMR_COL,
            lwd     = 0.5, xpd=NA)
     }
+    # label the DMR track so readers know what the boxes are
+    text(x=par("usr")[1], y=1.04, labels="DMR", col=DMR_COL, font=2, cex=0.6, xpd=NA, adj=c(0,0.5))
   }
 
   # Exon labels for SMN plots
@@ -193,7 +201,7 @@ get_dmrs <- function(ct_name, region) {
 
 # SECTION 1: SMN2 locus (masked, all 4 contrasts)
 
-message("\n=== SECTION 1: SMN2 locus plots ===")
+message("Plotting SMN2 locus (masked)...")
 for (ct in CONTRASTS) {
   fname <- paste0("SMN_locus_masked_", ct$name, ".pdf")
   message("  ", fname)
@@ -215,7 +223,7 @@ for (ct in CONTRASTS) {
 
 # SECTION 2: SMN2 sensitive scan locus (all 4 contrasts)
 
-message("\n=== SECTION 2: SMN2 sensitive scan plots ===")
+message("Plotting SMN2 sensitive scan...")
 for (ct in CONTRASTS) {
   fname <- paste0("SMN2_sensitive_", ct$name, ".pdf")
   message("  ", fname)
@@ -267,63 +275,63 @@ plot_gene_locus <- function(locus, out_dir) {
 }
 
 
-# SECTION 4: SEMA3C and SIGMAR1
-
-message("\n=== SECTION 4: SEMA3C and SIGMAR1 ===")
-example_loci <- list(
-  list(name="SEMA3C", chr="chr7", start=80799100, end=80829100,
-       gene_start=80765501, gene_end=80815949, strand="+",
-       label="SEMA3C — VPA-driven example (axon guidance, chr7)",
-       annotation="Intron | hypo | VPA-driven"),
-  list(name="SIGMAR1", chr="chr9", start=34625116, end=34655116,
-       gene_start=34634739, gene_end=34637844, strand="+",
-       label="SIGMAR1 — ASO-driven example (sigma receptor, chr9)",
-       annotation="Promoter | hyper | ASO-driven")
+# SECTION 4: Pairwise synergy candidates
+# genes context-dependent in BOTH ASO and VPA pairwise contrasts
+# selected from intersection of ASO_context_dependent_scored.csv and VPA_context_dependent_scored.csv
+# combined score >= 4, biologically relevant to SMA/neurology
+# provenance: results/pairwise_context_scan/pairwise_synergy_candidates_provenance.csv
+message("Plotting pairwise synergy candidates...")
+synergy_loci <- list(
+  list(name="KDM1A", chr="chr1",
+       start=23070569, end=23100868,
+       gene_start=23079363, gene_end=23083638, strand="+",
+       label="KDM1A — ASO+VPA context-dependent (histone demethylase LSD1, chr1)",
+       annotation="3 UTR | ASO_score=4, VPA_score=4 | histone demethylase"),
+  list(name="ZDHHC22", chr="chr14",
+       start=77127523, end=77157822,
+       gene_start=77139617, gene_end=77142734, strand="+",
+       label="ZDHHC22 — ASO+VPA context-dependent (palmitoyl transferase, chr14)",
+       annotation="Promoter (<=1kb) | ASO_score=3, VPA_score=6 | palmitoyl transferase"),
+  list(name="PAX5", chr="chr9",
+       start=37027067, end=37057366,
+       gene_start=36833269, gene_end=37034268, strand="+",
+       label="PAX5 — ASO+VPA context-dependent (transcription factor, chr9)",
+       annotation="Intron | ASO_score=6, VPA_score=4 | transcription factor"),
+  list(name="AFAP1L1", chr="chr5",
+       start=149290023, end=149320322,
+       gene_start=149301191, gene_end=149302668, strand="+",
+       label="AFAP1L1 — ASO+VPA context-dependent (actin filament, chr5)",
+       annotation="Intron | ASO_score=4, VPA_score=4 | cytoskeletal"),
+  list(name="UBE2D4", chr="chr7",
+       start=43923701, end=43954000,
+       gene_start=43938431, gene_end=43952957, strand="+",
+       label="UBE2D4 — ASO+VPA context-dependent (ubiquitin pathway, chr7)",
+       annotation="Promoter (<=1kb) | ASO_score=3, VPA_score=3 | ubiquitin conjugating enzyme"),
+  list(name="TNS4", chr="chr17",
+       start=40476054, end=40506353,
+       gene_start=40475828, gene_end=40480875, strand="+",
+       label="TNS4 — ASO+VPA context-dependent (cell adhesion, chr17)",
+       annotation="Intron | ASO_score=3, VPA_score=3 | tensin/cell adhesion"),
+  list(name="SHANK2", chr="chr11",
+       start=70825877, end=70856176,
+       gene_start=70469435, gene_end=70826894, strand="+",
+       label="SHANK2 — ASO+VPA context-dependent (synaptic scaffolding, chr11)",
+       annotation="Promoter (<=1kb) | ASO_score=1, VPA_score=3 | synaptic scaffolding"),
+  list(name="KIF21B", chr="chr1",
+       start=200972969, end=201003268,
+       gene_start=201001407, gene_end=201005590, strand="+",
+       label="KIF21B — ASO+VPA context-dependent (kinesin, chr1)",
+       annotation="Intron | ASO_score=3, VPA_score=1 | kinesin motor protein")
 )
-for (locus in example_loci) plot_gene_locus(locus, OUT_CANDIDATES)
+for (locus in synergy_loci) plot_gene_locus(locus, OUT_CANDIDATES)
 
+# SECTION 5: retired — old 7 survivors used ASO_VPA_vs_Scramble_CTRL (retired contrast)
+# replaced by Section 4 pairwise synergy candidates above
+message("Section 5 retired.")
 
-# SECTION 5: Original 7 survivors (pairwise reclassified)
+# SECTION 5 (renumbered): pairwise context-dependent candidates (ASO or VPA)
 
-message("\n=== SECTION 5: 7 survivor loci ===")
-survivor_loci <- list(
-  # ASO context-dependent
-  list(name="RELL2", chr="chr5", start=141600122, end=141630122,
-       gene_start=141589123, gene_end=141689422, strand="+",
-       label="RELL2 — ASO context-dependent (promoter, chr5)",
-       annotation="Promoter (1-2kb) | deviation=-0.381 | ASO context-dependent"),
-  list(name="DDIT4L", chr="chr4", start=100157963, end=100187963,
-       gene_start=100141264, gene_end=100241563, strand="+",
-       label="DDIT4L — ASO context-dependent (promoter, chr4)",
-       annotation="Promoter (<=1kb) | deviation=-0.275 | ASO context-dependent"),
-  list(name="MRPS2", chr="chr9", start=135477616, end=135507616,
-       gene_start=135453567, gene_end=135553866, strand="+",
-       label="MRPS2 — ASO context-dependent (promoter, chr9)",
-       annotation="Promoter (<=1kb) | deviation=-0.252 | ASO context-dependent"),
-  list(name="GNG14", chr="chr19", start=12676918, end=12706918,
-       gene_start=12641619, gene_end=12742218, strand="+",
-       label="GNG14 — ASO context-dependent (intron, chr19)",
-       annotation="Intron | deviation=-0.208 | ASO context-dependent"),
-  # VPA context-dependent
-  list(name="RNA5S13", chr="chr1", start=228662668, end=228692668,
-       gene_start=228587769, gene_end=228688068, strand="+",
-       label="RNA5S13 — VPA context-dependent (promoter, chr1)",
-       annotation="Promoter (<=1kb) | deviation=+0.284 | VPA context-dependent"),
-  list(name="KIAA1656", chr="chr22", start=30349684, end=30379684,
-       gene_start=30331935, gene_end=30432234, strand="+",
-       label="KIAA1656 — VPA context-dependent (intron, chr22)",
-       annotation="Intron | deviation=-0.215 | VPA context-dependent"),
-  list(name="TCEAL4", chr="chrX", start=103579302, end=103609302,
-       gene_start=103536053, gene_end=103636352, strand="+",
-       label="TCEAL4 — VPA context-dependent (promoter, chrX)",
-       annotation="Promoter (<=1kb) | deviation=+0.244 | VPA context-dependent")
-)
-for (locus in survivor_loci) plot_gene_locus(locus, OUT_CANDIDATES)
-
-
-# SECTION 6: New pairwise candidates
-
-message("\n=== SECTION 6: New pairwise candidates ===")
+message("Plotting pairwise context-dependent candidates...")
 new_candidates <- list(
   # ASO context-dependent
   list(name="IRF8", chr="chr16", start=85879034, end=85909034,
@@ -366,7 +374,7 @@ new_candidates <- list(
 )
 for (locus in new_candidates) plot_gene_locus(locus, OUT_CANDIDATES)
 
-message("\n=== ALL DONE ===")
+message("Done.")
 message("SMN2 locus:      ", OUT_SMN2)
 message("SMN2 sensitive:  ", OUT_SENSITIVE)
 message("All gene loci:   ", OUT_CANDIDATES)

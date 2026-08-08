@@ -20,6 +20,7 @@ CONTRASTS <- list(
        cond1=c('Scramble_VPA_1','Scramble_VPA_2','Scramble_VPA_3'),
        cond2=c('Scramble_CTRL_1','Scramble_CTRL_2','Scramble_CTRL_3'),
        masked=TRUE),
+  list(name='ASO_VPA_vs_ASO_CTRL',
        cond1=c('ASO_VPA_1','ASO_VPA_2','ASO_VPA_3'),
        cond2=c('ASO_CTRL_1','ASO_CTRL_2','ASO_CTRL_3'),
        masked=TRUE),
@@ -31,9 +32,9 @@ CONTRASTS <- list(
 
 read_masked <- function(samples) {
   grs <- lapply(samples, function(s) {
-    f <- file.path('results/alignments_smn1_masked/chr5_cx',
-                   paste0(s, '_chr5.CX_report.txt'))
-    d <- read.table(f, header=FALSE, sep='\t',
+    f <- file.path('results/alignments/bs/by_chr',
+                   paste0(s, '_chr5.CpG_report.txt.gz'))
+    d <- read.table(gzfile(f), header=FALSE, sep='\t',
       col.names=c('chr','pos','strand','countM','countU','context','tri'),
       colClasses=c('character','integer','character','integer',
                    'integer','character','character'))
