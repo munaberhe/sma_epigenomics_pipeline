@@ -217,3 +217,4 @@ WGBS reads at the SMN2 locus (chr5:70,049,638-70,078,522) show consistently low 
 - Wu et al. (2021) iMeta 1:e5 -- clusterProfiler 4.0
 - Finkel et al. (2017) NEJM 377:1723-1732 -- nusinersen clinical trial
 - Gottlicher et al. (2001) EMBO J 20:6969-6978 -- VPA as HDAC inhibitor
+# Last updated: August 2026
