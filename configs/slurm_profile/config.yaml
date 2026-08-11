@@ -1,0 +1,24 @@
+# Snakemake SLURM profile for Apocrita HPC (QMUL)
+# Submits each rule as a separate SLURM job with appropriate resources
+
+executor: slurm
+jobs: 12
+latency-wait: 60
+rerun-incomplete: true
+printshellcmds: true
+
+# Default resources if a rule doesn't specify
+default-resources:
+  mem_mb: 8000
+  runtime: 60
+  threads: 1
+
+# Submit jobs to the compute partition by default
+set-threads:
+  bismark_align: 24
+  bismark_align_masked: 24
+  dedup_and_extract: 8
+  dedup_and_extract_masked: 8
+
+# SLURM-specific settings
+slurm-jobscript: configs/slurm_profile/slurm-jobscript.sh

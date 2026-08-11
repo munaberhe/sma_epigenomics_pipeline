@@ -1,0 +1,30 @@
+name: Snakemake dry-run
+
+on: [push, pull_request]
+
+jobs:
+  dry-run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Snakemake
+        run: pip install snakemake
+
+      - name: Create dummy input files for dry-run
+        run: |
+          mkdir -p data/raw data/reference/Bisulfite_Genome data/reference_smn1_masked
+          for sample in ASO_CTRL_1 ASO_CTRL_2 ASO_CTRL_3 \
+                        ASO_VPA_1 ASO_VPA_2 ASO_VPA_3 \
+                        Scramble_CTRL_1 Scramble_CTRL_2 Scramble_CTRL_3 \
+                        Scramble_VPA_1 Scramble_VPA_2 Scramble_VPA_3; do
+            touch data/raw/${sample}_1.fastq.gz
+            touch data/raw/${sample}_2.fastq.gz
+          done
+          touch data/reference/hg38.fa
+          touch data/reference_smn1_masked/.index.done
+
+      - name: Validate Snakefile
+        run: |
+          snakemake --dry-run --cores 1 --forceall --nolock 2>&1 | head -50
+          echo "DAG validation complete"

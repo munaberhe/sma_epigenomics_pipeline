@@ -1,0 +1,23 @@
+# Pipeline configuration - SMA Epigenomics WGBS
+# Muna Berhe, bt25018, QMUL MSc Bioinformatics
+
+# Reference genome paths
+reference: data/reference
+reference_masked: data/reference_smn1_masked
+
+# Raw data location
+raw_data: data/raw
+
+# SMN1 masking coordinates (hg38, 1-based)
+# These are the coordinates confirmed and used in the pipeline
+smn1_mask_chr: chr5
+smn1_mask_start: 70924941
+smn1_mask_end: 70953015
+
+# DMR calling parameters - locked with Radu Zabet, 5 May 2026
+dmr_bin_size: 300
+dmr_min_diff: 0.20
+dmr_p_value: 0.01
+dmr_min_cpgs: 4
+dmr_min_gap: 300
+dmr_permutations: 20

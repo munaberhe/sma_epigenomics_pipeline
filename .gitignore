@@ -1,0 +1,17 @@
+results/
+logs/
+data/
+.Rproj.user/
+.claude/
+.DS_Store
+.Rhistory
+*.rds
+*.RData
+*.rda
+*.pdf
+*.png
+*.zip
+*.html
+*.parquet
+*.log
+*.bak
