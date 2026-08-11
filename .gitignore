@@ -2,7 +2,6 @@ results/
 logs/
 data/
 .Rproj.user/
-.claude/
 .DS_Store
 .Rhistory
 *.rds
