@@ -1,0 +1,162 @@
+#!/usr/bin/env Rscript
+.libPaths(c("~/R/library", .libPaths()))
+suppressPackageStartupMessages({
+  library(SummarizedExperiment)
+  library(GenomicRanges)
+  library(BSgenome.Hsapiens.UCSC.hg38)
+  library(TFBSTools)
+  library(JASPAR2020)
+  library(monaLisa)
+  library(ggplot2)
+})
+
+# TF motif enrichment at ASO-specific DMRs.
+# Uses monaLisa with JASPAR2020 vertebrate motifs.
+# Background: random genomic regions matched for length and chromosome distribution.
+# If ISL1, ROBO2, NeuroD1 come up enriched this supports the neural GO enrichment.
+
+DMR_DIR <- "results/dmr"
+OUT_DIR <- "results/tf_motif"
+dir.create(OUT_DIR, recursive=TRUE, showWarnings=FALSE)
+
+KEEP_CHRS <- paste0("chr", 1:22)
+
+message("loading ASO-specific DMRs...")
+dmr_specific <- readRDS(file.path(DMR_DIR, "dmr_ASO_specific.rds"))
+dmr_specific <- dmr_specific[as.character(seqnames(dmr_specific)) %in% KEEP_CHRS]
+message("  n = ", length(dmr_specific))
+
+# matched background regions — same chr distribution, same widths, no overlap with DMRs
+make_background <- function(query, n_bg=NULL, seed=42) {
+  if (is.null(n_bg)) n_bg <- length(query) * 5
+  set.seed(seed)
+  chr_sizes <- c(
+    chr1=248956422, chr2=242193529, chr3=198295559, chr4=190214555,
+    chr5=181538259, chr6=170805979, chr7=159345973, chr8=145138636,
+    chr9=138394717, chr10=133797422, chr11=135086622, chr12=133275309,
+    chr13=114364328, chr14=107043718, chr15=101991189, chr16=90338345,
+    chr17=83257441,  chr18=80373285,  chr19=58617616,  chr20=64444167,
+    chr21=46709983,  chr22=50818468)
+  chr_counts <- table(as.character(seqnames(query)))
+  chr_counts <- chr_counts[names(chr_counts) %in% names(chr_sizes)]
+  chr_probs  <- chr_counts / sum(chr_counts)
+  query_widths <- width(query)
+  bg_list <- list()
+  attempts <- 0
+  while (length(bg_list) < n_bg && attempts < n_bg*20) {
+    attempts <- attempts + 1
+    chr  <- sample(names(chr_probs), 1, prob=chr_probs)
+    w    <- sample(query_widths, 1)
+    maxs <- chr_sizes[chr] - w
+    if (maxs < 1) next
+    s <- sample(1:maxs, 1)
+    candidate <- GRanges(chr, IRanges(s, s+w-1))
+    if (length(findOverlaps(candidate, query)) == 0)
+      bg_list[[length(bg_list)+1]] <- candidate
+  }
+  message("  background regions: ", length(bg_list))
+  do.call(c, bg_list)
+}
+
+message("making background regions (5x)...")
+bg_regions <- make_background(dmr_specific)
+
+# extract sequences from hg38
+message("extracting sequences...")
+dmr_seqs <- getSeq(BSgenome.Hsapiens.UCSC.hg38, dmr_specific)
+bg_seqs  <- getSeq(BSgenome.Hsapiens.UCSC.hg38, bg_regions)
+writeXStringSet(dmr_seqs, file.path(OUT_DIR, "ASO_specific_DMR_sequences.fa"))
+writeXStringSet(bg_seqs,  file.path(OUT_DIR, "background_sequences.fa"))
+
+# load JASPAR2020 vertebrate motifs
+message("loading JASPAR2020 motifs...")
+pfm_list <- getMatrixSet(JASPAR2020,
+  list(collection="CORE", tax_group="vertebrates", all_versions=FALSE))
+pwm_list <- toPWM(pfm_list)
+message("  ", length(pfm_list), " motifs loaded")
+
+# run motif enrichment — this takes 10-20 min
+message("running motif enrichment (10-20 min)...")
+all_seqs <- c(dmr_seqs, bg_seqs)
+bins <- factor(c(rep("ASO_DMR",    length(dmr_seqs)),
+                 rep("Background", length(bg_seqs))),
+               levels=c("Background","ASO_DMR"))
+se <- calcBinnedMotifEnrR(
+  seqs    = all_seqs,
+  bins    = bins,
+  pwmL    = pwm_list,
+  BPPARAM = BiocParallel::MulticoreParam(4)
+)
+saveRDS(se, file.path(OUT_DIR, "motif_enrichment_results.rds"))
+
+# extract results
+results_df <- data.frame(
+  motif_id   = rownames(se),
+  motif_name = rowData(se)$motif.name,
+  log2_enr   = assay(se, "log2enr")[, "ASO_DMR"],
+  padj       = assay(se, "padj")[,   "ASO_DMR"],
+  stringsAsFactors = FALSE
+)
+results_sig <- results_df[!is.na(results_df$padj) & results_df$padj < 0.05, ]
+results_sig <- results_sig[order(results_sig$log2_enr, decreasing=TRUE), ]
+
+message("\nsignificant enriched motifs: ", sum(results_sig$log2_enr > 0))
+print(head(results_sig[results_sig$log2_enr > 0, ], 20), row.names=FALSE)
+
+write.csv(results_df[order(results_df$log2_enr, decreasing=TRUE), ],
+          file.path(OUT_DIR, "motif_enrichment_all.csv"), row.names=FALSE)
+write.csv(results_sig[results_sig$log2_enr > 0, ],
+          file.path(OUT_DIR, "motif_enrichment_significant_enriched.csv"),
+          row.names=FALSE)
+
+# spot check for neural TFs expected from GO enrichment
+neural_tfs <- c("ISL1","ISL2","ROBO","NEUROD1","NEUROD2","ASCL1",
+                "NHLH1","NHLH2","OLIG2","NKX2","NKX6","MNX1",
+                "HB9","CHAT","SOX10","PAX6","ATOH1")
+message("\nneural TF motifs:")
+for (tf in neural_tfs) {
+  hits <- results_df[grepl(tf, results_df$motif_name, ignore.case=TRUE), ]
+  if (nrow(hits) > 0)
+    cat(sprintf("  %-12s log2enr=%+.3f  padj=%.3e\n",
+                tf, hits$log2_enr[1], hits$padj[1]))
+}
+
+# plot top enriched
+top_n   <- 30
+plot_df <- head(results_sig[results_sig$log2_enr > 0, ], top_n)
+if (nrow(plot_df) > 0) {
+  plot_df$motif_name <- factor(plot_df$motif_name, levels=rev(plot_df$motif_name))
+  plot_df$sig_level  <- cut(-log10(plot_df$padj),
+                             breaks=c(0,1.3,2,3,Inf),
+                             labels=c("p<0.05","p<0.01","p<0.001","p<0.0001"))
+  p <- ggplot(plot_df, aes(x=log2_enr, y=motif_name, fill=sig_level)) +
+    geom_col() +
+    scale_fill_manual(values=c("p<0.05"="#b8d4e8","p<0.01"="#4b9eff",
+                               "p<0.001"="#1D6FA4","p<0.0001"="#0d3a6e"),
+                      name="significance", drop=FALSE) +
+    geom_vline(xintercept=0, linewidth=0.5, colour="grey30") +
+    labs(title="TF motif enrichment at ASO-specific DMRs",
+         subtitle="JASPAR2020 vertebrate motifs, monaLisa binned enrichment",
+         x="log2 enrichment (ASO DMRs vs background)", y=NULL) +
+    theme_classic(base_size=11) +
+    theme(plot.title=element_text(face="bold"), axis.text.y=element_text(size=8))
+  ggsave(file.path(OUT_DIR, "motif_enrichment_top30.pdf"), p, width=10, height=8)
+  message("saved enrichment plot")
+}
+
+# plot top depleted
+top_dep <- head(results_sig[results_sig$log2_enr < 0, ], top_n)
+top_dep <- top_dep[order(top_dep$log2_enr), ]
+if (nrow(top_dep) > 0) {
+  top_dep$motif_name <- factor(top_dep$motif_name, levels=rev(top_dep$motif_name))
+  p2 <- ggplot(top_dep, aes(x=log2_enr, y=motif_name)) +
+    geom_col(fill="#D94F3D") +
+    geom_vline(xintercept=0, linewidth=0.5, colour="grey30") +
+    labs(title="TF motifs depleted at ASO-specific DMRs",
+         x="log2 enrichment (negative = depleted)", y=NULL) +
+    theme_classic(base_size=11) +
+    theme(plot.title=element_text(face="bold"), axis.text.y=element_text(size=8))
+  ggsave(file.path(OUT_DIR, "motif_depletion_top30.pdf"), p2, width=10, height=8)
+  message("saved depletion plot")
+}
+message("\ndone. outputs in: ", OUT_DIR)
