@@ -1,4 +1,5 @@
 #!/usr/bin/env Rscript
+# ============================================================================
 # 20_master_locus_plots.R
 # Generates all CpG methylation locus plots for the thesis.
 # Sections:
@@ -9,6 +10,7 @@
 #   5. Pairwise context-dependent candidates (9 genes, ASO or VPA specific)
 # All candidate coordinates taken from pairwise_context_scan scored CSVs.
 # Usage: sbatch --mem=64G --wrap="Rscript scripts/pipeline/20_master_locus_plots.R"
+# ============================================================================
 .libPaths(c("~/R/library", .libPaths()))
 suppressPackageStartupMessages({
   library(DMRcaller)
@@ -128,7 +130,7 @@ plot_one <- function(meth_a, meth_b, ct, region, gff, title,
     plotPoints       = TRUE
   )
 
-  # DMR overdraw - red boxes at top of methylation panel
+  # DMR overdraw — red boxes at top of methylation panel
   # usr y-range is -0.256 to 1.256; methylation occupies 0 to 1
   # so ybottom=0.88, ytop=1.00 places boxes at the top of the data area
   if (!is.null(dmrs) && length(dmrs) > 0 && length(dmrs) <= 30) {
@@ -266,14 +268,14 @@ plot_gene_locus <- function(locus, out_dir) {
     if (!is.null(dmrs) && length(dmrs) > 0) {
       dmr_df <- as.data.frame(dmrs)
       dmr_df$meth_diff <- dmr_df$proportion1 - dmr_df$proportion2
-      best <- dmr_df[which.max(abs(dmr_df$meth_diff)), ]
+      best <- dmr_df[which.min(dmr_df$pValue), ]
       feature <- gsub(" \\| meth_diff.*", "", locus$annotation)
       ct_annotation <- sprintf("%s | meth_diff=%.3f | p=%.2e | n=%d DMRs in window",
                                 feature,
                                 best$meth_diff, best$pValue, nrow(dmr_df))
     } else {
       feature <- gsub(" \\| meth_diff.*", "", locus$annotation)
-      ct_annotation <- sprintf("%s | no DMR called in this contrast", feature)
+      ct_annotation <- sprintf("%s | no DMR in this contrast", feature)
     }
     tryCatch(
       plot_one(meth_pooled[[ct$cond_a]], meth_pooled[[ct$cond_b]],

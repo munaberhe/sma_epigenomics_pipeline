@@ -51,7 +51,7 @@ sma_relevant <- c(
   "IRF8","PAX5","SOX11","ETV1","ETV4","ETV5","PEA3"
 )
 
-# 2. GO term based scoring - neural/motor neuron terms
+# 2. GO term based scoring — neural/motor neuron terms
 neural_go_terms <- c(
   "neuromuscular junction", "motor neuron", "axon guidance",
   "neuron differentiation", "synaptic transmission", "axonogenesis",
@@ -159,7 +159,7 @@ p2 <- make_bubble(vpa_scored, "VPA context-dependent top hits", "#C0392B")
 if (!is.null(p1) && !is.null(p2)) {
   combined <- (p1 | p2) +
     plot_annotation(
-      title="Context-dependent DMR candidates - relevance scored",
+      title="Context-dependent DMR candidates — relevance scored",
       caption="Red = known SMA/motor neuron/chromatin relevant gene. Size = relevance score.",
       theme=theme(plot.title=element_text(face="bold", size=13))
     )

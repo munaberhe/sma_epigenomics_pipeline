@@ -2,6 +2,7 @@
 # fig_lowres_chr1.R
 # Low-resolution methylation profile across chr1 at 1Mb windows
 # Four conditions, canonical colours, solid/dashed linetype distinction
+# Muna Berhe, QMUL 2026
 
 .libPaths(c("~/R/library", .libPaths()))
 suppressPackageStartupMessages({
