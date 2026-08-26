@@ -1,9 +1,9 @@
 .libPaths("~/R/library")
 # benchmark_permutations.R
-# Multiple permutation benchmark — runs stratified scramble 20 times
+# Multiple permutation benchmark - runs stratified scramble 20 times
 # with different random seeds to get mean +/- SD signal/noise
 # Tests bins strict at all window sizes on chr1
-# SMA Epigenomics Pipeline — Muna Berhe, QMUL
+# SMA Epigenomics Pipeline - Muna Berhe, QMUL
 
 library(DMRcaller)
 
@@ -38,7 +38,7 @@ scramble_data <- function(dat1, dat2, seed=42) {
     #            labels = c("1-5", "6-10", "11-20", "21-50", "50+"),
      #           include.lowest = TRUE)
   #idx <- seq_along(coverage)
-  
+
   idx <- sample(1:length(dat1), size = length(dat1), replace = FALSE, seed = seed)
 #  for (s in levels(strata)) {
  #   stratum_idx <- which(strata == s)

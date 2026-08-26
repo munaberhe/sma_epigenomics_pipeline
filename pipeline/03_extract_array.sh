@@ -54,11 +54,11 @@ bismark_methylation_extractor \
   --output "$OUT" "$IN_BAM"
 
 if compgen -G "${OUT}/${SAMPLE}*CX_report.txt.gz" > /dev/null; then
-  echo "[$(date)] Extraction OK — removing BAM for $SAMPLE"
+  echo "[$(date)] Extraction OK - removing BAM for $SAMPLE"
   rm -f "$IN_BAM"
   touch "$DONE_FILE"
 else
-  echo "[$(date)] ERROR: CX report not found — keeping BAM"
+  echo "[$(date)] ERROR: CX report not found - keeping BAM"
   exit 1
 fi
 echo "[$(date)] Done: $SAMPLE"

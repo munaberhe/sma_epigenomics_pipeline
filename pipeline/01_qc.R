@@ -159,7 +159,7 @@ p_mbias <- ggplot(mbias_cpg, aes(x=position, y=pct_methylation,
   geom_line(alpha=0.7, linewidth=0.6) +
   facet_wrap(~read, ncol=1) +
   scale_colour_manual(values=GROUP_COLS) +
-  labs(title="M-bias — CpG context",
+  labs(title="M-bias - CpG context",
        x="Position in read (bp)", y="% CpG methylation") +
   theme_classic(base_size=11) +
   theme(plot.title=element_text(face="bold"),

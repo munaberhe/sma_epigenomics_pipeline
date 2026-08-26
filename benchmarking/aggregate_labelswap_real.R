@@ -1,7 +1,6 @@
 .libPaths("~/R/library")
 source("scripts/benchmarking/labelswap_real_helpers.R")
 
-# ---------------------------------------------------------------------------
 # Aggregate per-task RDS files from the corrected label-swap array into:
 #
 # 1) parameter_benchmark_labelswap_real_<method>_ws<WS>_strict.csv
@@ -18,7 +17,6 @@ source("scripts/benchmarking/labelswap_real_helpers.R")
 # 3) labelswap_real_summary.csv
 #    Compact summary (method, ws, n_real, n_scr_mean, n_scr_sd, n_scr_min,
 #    n_scr_max, ratio, delta).
-# ---------------------------------------------------------------------------
 
 suppressPackageStartupMessages({
   library(dplyr)
@@ -33,13 +31,13 @@ if (length(files) == 0) stop("No RDS files to aggregate. Did the array run?")
 
 raw <- do.call(rbind, lapply(files, readRDS))
 
-# ---- per-perm CSV (one row per task) --------------------------------------
+# per-perm CSV (one row per task)
 write.csv(raw, file.path(OUT_DIR, "labelswap_real_per_perm.csv"),
           row.names = FALSE)
 message("Wrote: ", file.path(OUT_DIR, "labelswap_real_per_perm.csv"),
         " (", nrow(raw), " rows)")
 
-# ---- check completeness ---------------------------------------------------
+# check completeness
 methods      <- c("bins", "neighbourhood", "noise_filter")
 window_sizes <- c(100, 200, 300, 500, 1000, 2000)
 expected <- expand.grid(method = methods, window_size = window_sizes,
@@ -56,7 +54,7 @@ if (nrow(missing) > 0) {
   message("All ", nrow(expected), " expected tasks present.")
 }
 
-# ---- compact summary ------------------------------------------------------
+# compact summary
 real_rows <- raw %>% filter(is_real)
 scr_rows  <- raw %>% filter(!is_real)
 
@@ -103,7 +101,7 @@ print(compact %>% select(method, window_size, n_real, n_scr_mean,
                          n_scr_sd, ratio, delta),
       n = 50)
 
-# ---- per-cell CSVs matching original parameter_benchmark_labelswap format -
+# per-cell CSVs matching original parameter_benchmark_labelswap format -
 # Column schema (from make_result_row in parameter_benchmark_helpers.R):
 #   method, window_size, mode, kernel, scramble_method,
 #   n_real, n_scrambled, ratio,

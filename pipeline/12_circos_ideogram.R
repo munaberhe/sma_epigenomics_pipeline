@@ -24,7 +24,6 @@ CONTRASTS <- list(
   list(name="ASO_VPA_vs_ASO_CTRL",           title="VPA in ASO context")
 )
 
-
 for (ct in CONTRASTS) {
   rds <- paste0("results/dmr/dmr_", ct$name, ".rds")
   if (!file.exists(rds)) next
@@ -48,7 +47,6 @@ for (ct in CONTRASTS) {
   dev.off()
   message("Saved linear ideogram: ", basename(out_pdf))
 }
-
 
 for (ct in CONTRASTS) {
   rds <- paste0("results/dmr/dmr_", ct$name, ".rds")
@@ -113,7 +111,6 @@ for (ct in CONTRASTS) {
   message("Saved circos: ", basename(out_pdf))
 }
 
-
 out_combined <- file.path(OUT, "circos_4contrasts_combined.pdf")
 pdf(out_combined, width=16, height=16, bg="white")
 par(mfrow=c(2,2), mar=c(1,1,2,1))
@@ -151,7 +148,6 @@ for (ct in CONTRASTS) {
 dev.off()
 message("Saved combined circos: ", basename(out_combined))
 
-
 all_bar_plots <- lapply(CONTRASTS, function(ct) {
   rds <- paste0("results/dmr/dmr_", ct$name, ".rds")
   if (!file.exists(rds)) return(NULL)
@@ -180,7 +176,7 @@ all_bar_plots <- lapply(CONTRASTS, function(ct) {
 
 combined_bars <- wrap_plots(Filter(Negate(is.null), all_bar_plots), ncol=2) +
   plot_annotation(
-    title = "DMR count per chromosome — four pairwise contrasts",
+    title = "DMR count per chromosome - four pairwise contrasts",
     theme = theme(plot.title = element_text(face="bold", size=13))
   )
 

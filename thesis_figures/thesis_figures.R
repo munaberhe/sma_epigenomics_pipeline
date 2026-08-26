@@ -47,12 +47,12 @@ for (nm in names(dmrs)) {
     message("  ", nm, ": ", length(dmrs[[nm]]), " DMRs")
 }
 
-# Fig 5.1a — MDS plot (already exists, just copy)
+# Fig 5.1a - MDS plot (already exists, just copy)
 file.copy("results/figures/qc_plots/mds_methylation.pdf",
           file.path(OUT, "Fig5.1a_MDS.pdf"), overwrite=TRUE)
 message("Copied MDS plot")
 
-# Fig 5.1b — Global CpG methylation violin per condition
+# Fig 5.1b - Global CpG methylation violin per condition
 message("Fig 5.1b: global methylation violin...")
 meth_cache <- readRDS("results/dmr/meth_pooled_cache.rds")
 violin_df <- do.call(rbind, lapply(names(meth_cache), function(cond) {
@@ -82,7 +82,7 @@ p_violin <- ggplot(violin_df, aes(x=condition, y=methylation, fill=condition)) +
     Scramble_VPA="Scramble\nVPA",
     ASO_VPA="ASO\nVPA")) +
   labs(title="Global CpG methylation distribution",
-       subtitle="50,000 CpGs sampled per condition (≥5x coverage)",
+       subtitle="50,000 CpGs sampled per condition (>=5x coverage)",
        x=NULL, y="CpG methylation proportion") +
   theme_classic(base_size=11) +
   theme(legend.position="none",
@@ -93,7 +93,7 @@ ggsave(file.path(OUT, "Fig5.1b_global_methylation_violin.pdf"),
        p_violin, width=6, height=5, device="pdf")
 message("Saved Fig5.1b")
 
-# Fig 5.2 — DMR counts bar chart (Table 5.3 visual)
+# Fig 5.2 - DMR counts bar chart (Table 5.3 visual)
 message("Fig 5.2: DMR counts...")
 count_df <- do.call(rbind, lapply(seq_along(CONTRASTS), function(i) {
   ct <- CONTRASTS[[i]]
@@ -128,22 +128,22 @@ ggsave(file.path(OUT, "Fig5.2_DMR_counts.pdf"),
        p_counts, width=7, height=5, device="pdf")
 message("Saved Fig5.2")
 
-# Fig 5.3 — UpSet plot (already exists)
+# Fig 5.3 - UpSet plot (already exists)
 file.copy("results/figures/upset/upset_4contrasts.pdf",
           file.path(OUT, "Fig5.3_UpSet.pdf"), overwrite=TRUE)
 message("Copied UpSet plot")
 
-# Fig 5.4 — Circos (already exists)
+# Fig 5.4 - Circos (already exists)
 file.copy("results/figures/genomic_distribution/circos_4contrasts_combined.pdf",
           file.path(OUT, "Fig5.4_Circos.pdf"), overwrite=TRUE)
 message("Copied Circos plot")
 
-# Fig 5.5 — Diverging chromosome bar (already exists)
+# Fig 5.5 - Diverging chromosome bar (already exists)
 file.copy("results/figures/genomic_distribution/chr_dmr_diverging_4contrasts.pdf",
           file.path(OUT, "Fig5.5_Chr_diverging.pdf"), overwrite=TRUE)
 message("Copied diverging bar")
 
-# Fig 5.6 — Methylation difference histograms (4 contrasts)
+# Fig 5.6 - Methylation difference histograms (4 contrasts)
 message("Fig 5.6: methylation diff histograms...")
 hist_panels <- lapply(seq_along(CONTRASTS), function(i) {
   ct <- CONTRASTS[[i]]
@@ -176,19 +176,19 @@ ggsave(file.path(OUT, "Fig5.6_meth_diff_histograms.pdf"),
        fig56, width=12, height=8, device="pdf")
 message("Saved Fig5.6")
 
-# Fig 5.7 — GO/KEGG (already exists)
+# Fig 5.7 - GO/KEGG (already exists)
 file.copy("results/figures/gokegg_pairwise/GO_4contrasts_combined.pdf",
           file.path(OUT, "Fig5.7_GO.pdf"), overwrite=TRUE)
 file.copy("results/figures/gokegg_pairwise/KEGG_4contrasts_combined.pdf",
           file.path(OUT, "Fig5.8_KEGG.pdf"), overwrite=TRUE)
 message("Copied GO/KEGG plots")
 
-# Fig 5.9 — Volcano (already exists)
+# Fig 5.9 - Volcano (already exists)
 file.copy("results/figures/volcano_plots/volcano_4contrasts.pdf",
           file.path(OUT, "Fig5.9_Volcano.pdf"), overwrite=TRUE)
 message("Copied volcano plot")
 
-# Table 5.3 — DMR count summary CSV
+# Table 5.3 - DMR count summary CSV
 message("Table 5.3: DMR count summary...")
 tbl <- do.call(rbind, lapply(CONTRASTS, function(ct) {
   d <- dmrs[[ct$name]]

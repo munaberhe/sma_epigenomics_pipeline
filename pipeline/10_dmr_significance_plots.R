@@ -151,7 +151,7 @@ plots <- lapply(seq_along(CONTRASTS), function(i) {
 # 2x2 combined
 combined <- wrap_plots(plots, ncol=2) +
   plot_annotation(
-    title   = "Genomic distribution of DMR significance — four pairwise contrasts",
+    title   = "Genomic distribution of DMR significance - four pairwise contrasts",
     caption = "Each point = one DMR called by DMRcaller (bins method, strict). Dashed line: p=0.05.",
     theme   = theme(
       plot.title   = element_text(face="bold", size=13),

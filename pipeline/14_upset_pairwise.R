@@ -10,7 +10,6 @@ setwd("/gpfs/scratch/bt25018/sma_epigenomics_pipeline")
 OUT <- "results/figures/upset"
 dir.create(OUT, recursive=TRUE, showWarnings=FALSE)
 
-
 hc <- function(gr) gr[mcols(gr)$cytosinesCount >= 6]
 
 aso_alone  <- hc(readRDS("results/dmr/dmr_ASO_CTRL_vs_Scramble_CTRL.rds"))
@@ -28,11 +27,9 @@ sets <- list(
 cat("DMR counts per contrast:\n")
 for (n in names(sets)) cat(" ", n, ":", length(sets[[n]]), "\n")
 
-
 message("Building universe...")
 universe <- reduce(do.call(c, unname(sets)))
 message("  Universe size: ", length(universe))
-
 
 message("Computing membership...")
 mat <- data.frame(
@@ -49,7 +46,6 @@ cat("Universe size:", nrow(mat), "\n")
 # Save membership matrix
 write.csv(mat, file.path(OUT, "upset_membership_matrix.csv"),
           row.names=FALSE)
-
 
 message("Plotting UpSet...")
 pdf(file.path(OUT, "upset_4contrasts.pdf"),
@@ -84,7 +80,6 @@ grid.text(
 
 dev.off()
 message("Saved: upset_4contrasts.pdf")
-
 
 message("Writing intersection summary...")
 get_n <- function(a=0, v=0, aiv=0, via=0) {

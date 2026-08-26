@@ -1,5 +1,4 @@
 #!/usr/bin/env Rscript
-# ============================================================================
 # 20_master_locus_plots.R
 # Generates all CpG methylation locus plots for the thesis.
 # Sections:
@@ -10,14 +9,12 @@
 #   5. Pairwise context-dependent candidates (9 genes, ASO or VPA specific)
 # All candidate coordinates taken from pairwise_context_scan scored CSVs.
 # Usage: sbatch --mem=64G --wrap="Rscript scripts/pipeline/20_master_locus_plots.R"
-# ============================================================================
 .libPaths(c("~/R/library", .libPaths()))
 suppressPackageStartupMessages({
   library(DMRcaller)
   library(GenomicRanges)
 })
 setwd("/gpfs/scratch/bt25018/sma_epigenomics_pipeline")
-
 
 OUT_SMN2      <- "results/smn2_locus_final"
 OUT_SENSITIVE <- "results/smn2_sensitive_locus"
@@ -28,7 +25,6 @@ dir.create(OUT_SENSITIVE, recursive=TRUE, showWarnings=FALSE)
 dir.create(OUT_CANDIDATES, recursive=TRUE, showWarnings=FALSE)
 dir.create(OUT_SMN2_ALL, recursive=TRUE, showWarnings=FALSE)
 
-
 COND_COLS <- c(
   ASO_CTRL      = "#1F3A5F",
   Scramble_CTRL = "#6B7280",
@@ -38,7 +34,6 @@ COND_COLS <- c(
 DMR_COL  <- "#E31A1C"
 WIN_SIZE <- 300
 MIN_COV  <- 3
-
 
 CONTRASTS <- list(
   list(name="ASO_CTRL_vs_Scramble_CTRL",
@@ -54,7 +49,6 @@ CONTRASTS <- list(
        cond_a="ASO_CTRL", cond_b="ASO_VPA",
        label="VPA effect on ASO background")
 )
-
 
 LOCI_COORDS <- list(
   SMN1 = list(chr="chr5", start=70924941, end=70953015, strand="+"),
@@ -104,7 +98,6 @@ build_gene_gff <- function(locus) {
           strand=locus$strand, type="gene", name=locus$name)
 }
 
-
 plot_one <- function(meth_a, meth_b, ct, region, gff, title,
                      dmrs=NULL, annotation=NULL,
                      exon_labels=NULL, flank=2000) {
@@ -126,7 +119,7 @@ plot_one <- function(meth_a, meth_b, ct, region, gff, title,
     plotPoints       = TRUE
   )
 
-  # DMR overdraw — red boxes at top of methylation panel
+  # DMR overdraw - red boxes at top of methylation panel
   # usr y-range is -0.256 to 1.256; methylation occupies 0 to 1
   # so ybottom=0.88, ytop=1.00 places boxes at the top of the data area
   if (!is.null(dmrs) && length(dmrs) > 0 && length(dmrs) <= 30) {
@@ -159,7 +152,6 @@ plot_one <- function(meth_a, meth_b, ct, region, gff, title,
   if (!is.null(annotation))
     mtext(annotation, side=3, line=0.2, cex=0.7, col="grey40", adj=1)
 }
-
 
 message("Loading methylation cache...")
 meth_pooled <- readRDS("results/dmr/meth_pooled_cache.rds")
@@ -198,7 +190,6 @@ get_dmrs <- function(ct_name, region) {
   subsetByOverlaps(dmr_results[[ct_name]], region)
 }
 
-
 # SECTION 1: SMN2 locus (masked, all 4 contrasts)
 
 message("Plotting SMN2 locus (masked)...")
@@ -219,7 +210,6 @@ for (ct in CONTRASTS) {
   )
   dev.off()
 }
-
 
 # SECTION 2: SMN2 sensitive scan locus (all 4 contrasts)
 
@@ -244,7 +234,6 @@ for (ct in CONTRASTS) {
   )
   dev.off()
 }
-
 
 # SECTION 3: Gene locus plots helper function
 
@@ -274,7 +263,6 @@ plot_gene_locus <- function(locus, out_dir) {
   dev.off()
 }
 
-
 # SECTION 4: Pairwise synergy candidates
 # genes context-dependent in BOTH ASO and VPA pairwise contrasts
 # selected from intersection of ASO_context_dependent_scored.csv and VPA_context_dependent_scored.csv
@@ -285,47 +273,47 @@ synergy_loci <- list(
   list(name="KDM1A", chr="chr1",
        start=23070569, end=23100868,
        gene_start=23079363, gene_end=23083638, strand="+",
-       label="KDM1A — ASO+VPA context-dependent (histone demethylase LSD1, chr1)",
+       label="KDM1A - ASO+VPA context-dependent (histone demethylase LSD1, chr1)",
        annotation="3 UTR | ASO_score=4, VPA_score=4 | histone demethylase"),
   list(name="ZDHHC22", chr="chr14",
        start=77127523, end=77157822,
        gene_start=77139617, gene_end=77142734, strand="+",
-       label="ZDHHC22 — ASO+VPA context-dependent (palmitoyl transferase, chr14)",
+       label="ZDHHC22 - ASO+VPA context-dependent (palmitoyl transferase, chr14)",
        annotation="Promoter (<=1kb) | ASO_score=3, VPA_score=6 | palmitoyl transferase"),
   list(name="PAX5", chr="chr9",
        start=37027067, end=37057366,
        gene_start=36833269, gene_end=37034268, strand="+",
-       label="PAX5 — ASO+VPA context-dependent (transcription factor, chr9)",
+       label="PAX5 - ASO+VPA context-dependent (transcription factor, chr9)",
        annotation="Intron | ASO_score=6, VPA_score=4 | transcription factor"),
   list(name="AFAP1L1", chr="chr5",
        start=149290023, end=149320322,
        gene_start=149301191, gene_end=149302668, strand="+",
-       label="AFAP1L1 — ASO+VPA context-dependent (actin filament, chr5)",
+       label="AFAP1L1 - ASO+VPA context-dependent (actin filament, chr5)",
        annotation="Intron | ASO_score=4, VPA_score=4 | cytoskeletal"),
   list(name="UBE2D4", chr="chr7",
        start=43923701, end=43954000,
        gene_start=43938431, gene_end=43952957, strand="+",
-       label="UBE2D4 — ASO+VPA context-dependent (ubiquitin pathway, chr7)",
+       label="UBE2D4 - ASO+VPA context-dependent (ubiquitin pathway, chr7)",
        annotation="Promoter (<=1kb) | ASO_score=3, VPA_score=3 | ubiquitin conjugating enzyme"),
   list(name="TNS4", chr="chr17",
        start=40476054, end=40506353,
        gene_start=40475828, gene_end=40480875, strand="+",
-       label="TNS4 — ASO+VPA context-dependent (cell adhesion, chr17)",
+       label="TNS4 - ASO+VPA context-dependent (cell adhesion, chr17)",
        annotation="Intron | ASO_score=3, VPA_score=3 | tensin/cell adhesion"),
   list(name="SHANK2", chr="chr11",
        start=70825877, end=70856176,
        gene_start=70469435, gene_end=70826894, strand="+",
-       label="SHANK2 — ASO+VPA context-dependent (synaptic scaffolding, chr11)",
+       label="SHANK2 - ASO+VPA context-dependent (synaptic scaffolding, chr11)",
        annotation="Promoter (<=1kb) | ASO_score=1, VPA_score=3 | synaptic scaffolding"),
   list(name="KIF21B", chr="chr1",
        start=200972969, end=201003268,
        gene_start=201001407, gene_end=201005590, strand="+",
-       label="KIF21B — ASO+VPA context-dependent (kinesin, chr1)",
+       label="KIF21B - ASO+VPA context-dependent (kinesin, chr1)",
        annotation="Intron | ASO_score=3, VPA_score=1 | kinesin motor protein")
 )
 for (locus in synergy_loci) plot_gene_locus(locus, OUT_CANDIDATES)
 
-# SECTION 5: retired — old 7 survivors used ASO_VPA_vs_Scramble_CTRL (retired contrast)
+# SECTION 5: retired - old 7 survivors used ASO_VPA_vs_Scramble_CTRL (retired contrast)
 # replaced by Section 4 pairwise synergy candidates above
 message("Section 5 retired.")
 
@@ -336,40 +324,40 @@ new_candidates <- list(
   # ASO context-dependent
   list(name="IRF8", chr="chr16", start=85879034, end=85909034,
        gene_start=85865935, gene_end=85966234, strand="+",
-       label="IRF8 — ASO context-dependent (transcription factor, chr16)",
+       label="IRF8 - ASO context-dependent (transcription factor, chr16)",
        annotation="Promoter | score=9 | neuroinflammation regulator"),
   list(name="USP27X", chr="chrX", start=49909302, end=49939302,
        gene_start=49832753, gene_end=49933052, strand="+",
-       label="USP27X — ASO context-dependent (deubiquitinase, chrX)",
+       label="USP27X - ASO context-dependent (deubiquitinase, chrX)",
        annotation="Downstream | score=7 | ASO context-dependent"),
   list(name="USP7", chr="chr16", start=8912084, end=8942084,
        gene_start=8840635, gene_end=8940934, strand="+",
-       label="USP7 — ASO context-dependent (deubiquitinase/chromatin, chr16)",
+       label="USP7 - ASO context-dependent (deubiquitinase/chromatin, chr16)",
        annotation="Distal intergenic | score=6 | ASO context-dependent"),
   list(name="KDM1A", chr="chr1", start=23034568, end=23064568,
        gene_start=23035569, gene_end=23135868, strand="+",
-       label="KDM1A — ASO context-dependent (histone demethylase LSD1, chr1)",
+       label="KDM1A - ASO context-dependent (histone demethylase LSD1, chr1)",
        annotation="3 UTR | score=4 | histone demethylase"),
   list(name="PAX5_ASO", chr="chr9", start=37046116, end=37076116,
        gene_start=36992067, gene_end=37092366, strand="+",
-       label="PAX5 — ASO context-dependent (transcription factor, chr9)",
+       label="PAX5 - ASO context-dependent (transcription factor, chr9)",
        annotation="Intron | score=6 | ASO context-dependent"),
   # VPA context-dependent
   list(name="PAX5_VPA", chr="chr9", start=37046116, end=37076116,
        gene_start=36992067, gene_end=37092366, strand="+",
-       label="PAX5 — VPA context-dependent (transcription factor, chr9)",
+       label="PAX5 - VPA context-dependent (transcription factor, chr9)",
        annotation="Intron | score=7 | VPA context-dependent"),
   list(name="CAMK2A", chr="chr5", start=150245072, end=150275072,
        gene_start=150164623, gene_end=150264922, strand="+",
-       label="CAMK2A — VPA context-dependent (calcium kinase, chr5)",
+       label="CAMK2A - VPA context-dependent (calcium kinase, chr5)",
        annotation="Intron | score=7 | synaptic/motor neuron"),
   list(name="EPHB1", chr="chr3", start=135030969, end=135060969,
        gene_start=135041420, gene_end=135141719, strand="+",
-       label="EPHB1 — VPA context-dependent (axon guidance, chr3)",
+       label="EPHB1 - VPA context-dependent (axon guidance, chr3)",
        annotation="Intron | score=7 | axon guidance"),
   list(name="ZDHHC22", chr="chr14", start=77081022, end=77111022,
        gene_start=77092523, gene_end=77192822, strand="+",
-       label="ZDHHC22 — VPA context-dependent (palmitoyl transferase, chr14)",
+       label="ZDHHC22 - VPA context-dependent (palmitoyl transferase, chr14)",
        annotation="Promoter | score=6 | VPA context-dependent")
 )
 for (locus in new_candidates) plot_gene_locus(locus, OUT_CANDIDATES)

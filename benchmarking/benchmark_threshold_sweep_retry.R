@@ -1,7 +1,6 @@
 .libPaths("~/R/library")
 source("scripts/benchmarking/parameter_benchmark_helpers.R")
 
-# ---------------------------------------------------------------------------
 # Targeted rerun of ONLY the combinations that failed in
 # benchmark_threshold_sweep.R due to the 1800s internal time limit being
 # too short at parallel=FALSE. This version enables parallel=TRUE, cores=32
@@ -18,7 +17,6 @@ source("scripts/benchmarking/parameter_benchmark_helpers.R")
 #   ws=1000, md=0.2, 0.3, 0.4
 #   ws=2000, md=0.2, 0.3, 0.4
 # 13 failed combinations total -- this array covers exactly those 13 tasks.
-# ---------------------------------------------------------------------------
 
 FAILED_COMBOS <- data.frame(
   window_size = c(100, 200, 300, 500, 500, 500, 1000, 1000, 1000, 2000, 2000, 2000, 500),

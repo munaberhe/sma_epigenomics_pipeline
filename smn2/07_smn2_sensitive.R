@@ -51,7 +51,7 @@ PARAM_SETS <- list(
   list(label="2pct_50bp",  minDiff=0.02, binSize=50,  minCyto=2, pval=0.05),
   list(label="1pct_50bp",  minDiff=0.01, binSize=50,  minCyto=2, pval=0.10),
   # Radu: genome-wide 300bp window tuned on VPA signal may be too coarse for
-  # the small ASO-only differences at SMN2 — test 200bp and 500bp here
+  # the small ASO-only differences at SMN2 - test 200bp and 500bp here
   list(label="5pct_200bp", minDiff=0.05, binSize=200, minCyto=3, pval=0.05),
   list(label="5pct_500bp", minDiff=0.05, binSize=500, minCyto=3, pval=0.05)
 )
@@ -102,7 +102,6 @@ if (length(non_empty) > 0) {
              file.path(OUT, 'SMN2_sensitive_all_contrasts_result.txt'))
 }
 message('\nDone.')
-
 
 df <- read.csv('results/dmr_annotation/ASO_CTRL_vs_Scramble_CTRL_annotated.csv')
 

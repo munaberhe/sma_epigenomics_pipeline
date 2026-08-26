@@ -1,7 +1,6 @@
 .libPaths("~/R/library")
 source("scripts/benchmarking/parameter_benchmark_helpers.R")
 
-# ---------------------------------------------------------------------------
 # Threshold sweep: minProportionDifference = 0.1, 0.2, 0.3, 0.4
 # Requested by Radu for the label-swap and read-count permutation panels,
 # y-axis = number of DMRs (not coverage). Reuses run_dmrs_one(),
@@ -12,7 +11,6 @@ source("scripts/benchmarking/parameter_benchmark_helpers.R")
 # neighbourhood and noise_filter already shown separately/excluded per
 # earlier findings), 6 window sizes, 4 thresholds, 2 null models.
 # 6 x 4 x 2 = 48 tasks.
-# ---------------------------------------------------------------------------
 
 run_dmrs_one_threshold <- function(treat, ctrl, ws, min_diff, region) {
   th <- get_thresholds("bins", strict = TRUE, ws = ws)  # base: strict pval/minCpG/minGap

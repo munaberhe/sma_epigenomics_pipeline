@@ -121,7 +121,7 @@ plots <- lapply(seq_along(CONTRASTS), function(i) {
 
 combined <- wrap_plots(plots, ncol=2) +
   plot_annotation(
-    title   = "DMR volcano plots — four pairwise contrasts",
+    title   = "DMR volcano plots - four pairwise contrasts",
     caption = "x: methylation difference (treatment - reference). Dashed lines: |Δβ|=20%, p=0.05.",
     theme   = theme(
       plot.title   = element_text(face="bold", size=13),

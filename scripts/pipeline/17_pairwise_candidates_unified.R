@@ -3,7 +3,7 @@
 # Pairwise candidate gene selection for SMA epigenomics project
 # Muna Berhe, QMUL 2026
 #
-# Four pairwise contrasts (locked params: binSize=300, minDiff=0.20, p<0.01):
+# Four pairwise contrasts (selected params: binSize=300, minDiff=0.20, p<0.01):
 #   ASO alone:  ASO_CTRL vs Scramble_CTRL
 #   VPA alone:  Scramble_VPA vs Scramble_CTRL
 #   ASO in VPA: ASO_VPA vs Scramble_VPA
@@ -36,9 +36,7 @@ dir.create(OUT, recursive=TRUE, showWarnings=FALSE)
 
 txdb <- TxDb.Hsapiens.UCSC.hg38.knownGene
 
-# ---------------------------------------------------------------------------
 # 1. Load DMR sets
-# ---------------------------------------------------------------------------
 message("Loading DMR RDS files...")
 aso_alone  <- readRDS("results/dmr/dmr_ASO_CTRL_vs_Scramble_CTRL.rds")
 vpa_alone  <- readRDS("results/dmr/dmr_Scramble_VPA_vs_Scramble_CTRL.rds")
@@ -51,12 +49,10 @@ cat("  VPA alone:", length(vpa_alone), "\n")
 cat("  ASO in VPA:", length(aso_in_vpa), "\n")
 cat("  VPA in ASO:", length(vpa_in_aso), "\n")
 
-# ---------------------------------------------------------------------------
 # 2. Annotate with ChIPseeker
 #    tssRegion = +/-2kb around TSS
 #    proportion1 = treatment, proportion2 = reference (see 02_dmr_calling.R)
 #    meth_diff > 0 means treatment hypermethylated (regionType "loss")
-# ---------------------------------------------------------------------------
 annotate_dmrs <- function(gr, label) {
   anno <- annotatePeak(gr, tssRegion=c(-2000, 2000),
                        TxDb=txdb, annoDb="org.Hs.eg.db", verbose=FALSE)
@@ -77,10 +73,8 @@ write.csv(ann_vpa_alone,  file.path(OUT, "annotated_VPA_alone.csv"),  row.names=
 write.csv(ann_aso_in_vpa, file.path(OUT, "annotated_ASO_in_VPA.csv"), row.names=FALSE)
 write.csv(ann_vpa_in_aso, file.path(OUT, "annotated_VPA_in_ASO.csv"), row.names=FALSE)
 
-# ---------------------------------------------------------------------------
 # 3. Gene-level sets
 #    Filter out uncharacterised loci (LOC*, LINC*, MIR*, antisense)
-# ---------------------------------------------------------------------------
 clean_genes <- function(df) {
   unique(df$SYMBOL[!is.na(df$SYMBOL) & df$SYMBOL != "" &
                    !grepl("^LOC|^LINC|^MIR|^SNOR|-AS[0-9]$|-DT$", df$SYMBOL)])
@@ -91,12 +85,10 @@ genes_vpa_alone  <- clean_genes(ann_vpa_alone)
 genes_aso_in_vpa <- clean_genes(ann_aso_in_vpa)
 genes_vpa_in_aso <- clean_genes(ann_vpa_in_aso)
 
-# ---------------------------------------------------------------------------
 # 4. Candidate categories
 #    context-dependent: present in combination contrast, absent in single-drug
 #    synergy:           context-dependent in both combination contrasts
 #    restricted:        context-dependent in only one combination contrast
-# ---------------------------------------------------------------------------
 aso_context_dep <- setdiff(genes_aso_in_vpa, genes_aso_alone)
 vpa_context_dep <- setdiff(genes_vpa_in_aso, genes_vpa_alone)
 synergy         <- intersect(aso_context_dep, vpa_context_dep)
@@ -110,12 +102,10 @@ cat("  Pairwise synergy:", length(synergy), "\n")
 cat("  ASO restricted:", length(aso_restricted), "\n")
 cat("  VPA restricted:", length(vpa_restricted), "\n")
 
-# ---------------------------------------------------------------------------
 # 5. Relevance scoring (0-8 per DMR; take max across DMRs per gene)
 #    +3 SMA/motor neuron relevant gene
 #    +3 promoter; +2 UTR/exon; +1 intron/intergenic
 #    +2 |meth_diff| >= 0.40; +1 >= 0.20
-# ---------------------------------------------------------------------------
 sma_relevant <- c(
   "SMN1","SMN2","NAIP","NCALD","PLS3",
   "SOD1","TARDBP","FUS","ALS2",

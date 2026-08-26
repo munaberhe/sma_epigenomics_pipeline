@@ -11,7 +11,7 @@
 
 # Step 4: split the whole-genome CX report into per-chromosome CpG files.
 # DMRcaller loads data per chromosome so splitting here speeds up downstream steps.
-# Only CpG context (column 6 == "CG") is kept — CHG/CHH are discarded.
+# Only CpG context (column 6 == "CG") is kept - CHG/CHH are discarded.
 # Output: one gzipped file per sample per chromosome in results/alignments_smn1_masked/by_chr/
 
 set -euo pipefail
@@ -59,7 +59,7 @@ fi
 
 echo "[$(date)] Splitting $SAMPLE by chromosome..."
 
-# stream through awk — filter to CpG only, split by chr into separate files
+# stream through awk - filter to CpG only, split by chr into separate files
 if [[ "$CX_FILE" == *.gz ]]; then
     READ_CMD="zcat $CX_FILE"
 else

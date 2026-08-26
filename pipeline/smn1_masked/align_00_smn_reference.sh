@@ -28,7 +28,6 @@ with open(f"{ref_dir}/smn2_sequence.fa") as f:
     lines = f.readlines()
     smn2_seq = "".join(l.strip() for l in lines if not l.startswith(">"))
 
-  
 with open(f"{ref_dir}/smn1_sequence.fa") as f:
     lines = f.readlines()
     smn1_seq = "".join(l.strip() for l in lines if not l.startswith(">"))

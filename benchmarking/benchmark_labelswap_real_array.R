@@ -1,7 +1,6 @@
 .libPaths("~/R/library")
 source("scripts/benchmarking/labelswap_real_helpers.R")
 
-# ---------------------------------------------------------------------------
 # Per-task script for the corrected label-swap array.
 # Each task = one (method, window, perm_id) cell.
 # Total: 3 methods x 6 windows x 10 perms = 180 tasks.
@@ -14,7 +13,6 @@ source("scripts/benchmarking/labelswap_real_helpers.R")
 # After all tasks finish, run aggregate_labelswap_real.R to assemble the
 # CSV summary in the same column format as the original
 # parameter_benchmark_labelswap_*_strict.csv files.
-# ---------------------------------------------------------------------------
 
 TASK_ID <- as.integer(Sys.getenv("SLURM_ARRAY_TASK_ID", "1"))
 

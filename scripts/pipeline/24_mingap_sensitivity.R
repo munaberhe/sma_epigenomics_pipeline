@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 # 24_mingap_sensitivity.R
 # minGap sensitivity sweep across all chromosomes, four pairwise contrasts.
-# Tests minGap 100, 200, 300 (locked), 500, 1000.
+# Tests minGap 100, 200, 300 (selected), 500, 1000.
 # Vectorized: loads and pools each chromosome ONCE per contrast, then
 # reuses the pooled data across all 5 minGap values (was reloading per
 # minGap value before, causing 5x redundant file I/O).
@@ -111,7 +111,7 @@ p <- ggplot(df, aes(x=minGap, y=n_dmrs, colour=contrast, group=contrast)) +
   geom_point(size=3) +
   geom_vline(xintercept=300, linetype="dashed", colour="grey40") +
   annotate("text", x=310, y=max(df$n_dmrs)*0.95,
-           label="Locked\nminGap=300", hjust=0, size=3, colour="grey30") +
+           label="Selected\nminGap=300", hjust=0, size=3, colour="grey30") +
   scale_colour_manual(values=COND_COLS, name=NULL) +
   scale_x_continuous(breaks=MINGAP_VALUES) +
   labs(x="minGap (bp)", y="DMR count (genome-wide)") +

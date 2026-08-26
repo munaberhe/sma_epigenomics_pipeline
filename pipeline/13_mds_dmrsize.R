@@ -18,7 +18,6 @@ COND_COLS <- c(
   Scramble_VPA  = "#F0A500"
 )
 
-
 message("Building MDS plot...")
 cor_csv <- "results/qc/methylation/methylation_correlation.csv"
 if (file.exists(cor_csv)) {
@@ -44,7 +43,7 @@ if (file.exists(cor_csv)) {
     scale_colour_manual(values=COND_COLS, name="Condition") +
     stat_ellipse(aes(group=condition), level=0.8,
                  linetype="dashed", linewidth=0.5) +
-    labs(title="MDS plot — CpG methylation profiles",
+    labs(title="MDS plot - CpG methylation profiles",
          subtitle="Distance = 1 - Pearson correlation of genome-wide methylation",
          x="MDS dimension 1", y="MDS dimension 2") +
     theme_classic(base_size=12) +
@@ -60,7 +59,6 @@ if (file.exists(cor_csv)) {
 } else {
   message("WARNING: correlation CSV not found at ", cor_csv)
 }
-
 
 message("Building DMR size distribution...")
 
@@ -102,7 +100,7 @@ size_plots <- lapply(CONTRASTS, function(ct) {
 
 combined_size <- wrap_plots(Filter(Negate(is.null), size_plots), ncol=2) +
   plot_annotation(
-    title   = "DMR size distribution — four pairwise contrasts",
+    title   = "DMR size distribution - four pairwise contrasts",
     caption = "Each DMR = one 300bp window passing significance threshold.",
     theme   = theme(plot.title = element_text(face="bold", size=13))
   )

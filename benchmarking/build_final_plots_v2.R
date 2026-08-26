@@ -11,13 +11,11 @@ dir.create(OUT_DIR, recursive = TRUE, showWarnings = FALSE)
 NAVY <- "#1B4F8A"
 RED  <- "#B2182B"
 GREY <- "#6B7280"
-LOCKED_WS <- 300    # your locked pipeline bin size
-LOCKED_MD <- 0.2    # your locked pipeline minProportionDifference
+SELECTED_WS <- 300    # selected pipeline bin size
+SELECTED_MD <- 0.2    # selected pipeline minProportionDifference
 
-# ---------------------------------------------------------------------------
 # PLOT 1: label-swap, real replicate-partition permutation (wide format
 # for ribbon shading)
-# ---------------------------------------------------------------------------
 ls_df <- read.csv("results/dmr_benchmark_labelswap_real/labelswap_real_summary.csv")
 ls_df <- ls_df[ls_df$method == "bins", ]
 ls_df <- ls_df[!is.na(ls_df$n_real), ]
@@ -32,9 +30,9 @@ p_ls <- ggplot(ls_df, aes(x = window_size)) +
   geom_line(aes(y = n_scr_mean, colour = "Scrambled (mean of 9 real partitions)"), linewidth = 1.0) +
   geom_point(aes(y = n_scr_mean, colour = "Scrambled (mean of 9 real partitions)",
                 shape = "Scrambled (mean of 9 real partitions)"), size = 3, fill = "white", stroke = 0.9) +
-  geom_vline(xintercept = LOCKED_WS, linetype = "dashed", colour = "grey40", linewidth = 0.6) +
-  annotate("text", x = LOCKED_WS, y = max(ls_df$n_real, na.rm = TRUE) * 1.5,
-           label = paste0("Locked bin size (", LOCKED_WS, "bp)"),
+  geom_vline(xintercept = SELECTED_WS, linetype = "dashed", colour = "grey40", linewidth = 0.6) +
+  annotate("text", x = SELECTED_WS, y = max(ls_df$n_real, na.rm = TRUE) * 1.5,
+           label = paste0("Selected bin size (", SELECTED_WS, "bp)"),
            angle = 90, vjust = -0.5, size = 3.2, colour = "grey30") +
   scale_colour_manual(values = c("Real" = NAVY, "Scrambled (mean of 9 real partitions)" = GREY),
                       name = NULL) +
@@ -44,7 +42,7 @@ p_ls <- ggplot(ls_df, aes(x = window_size)) +
   scale_y_log10(labels = scales::comma) +
   labs(
     title = "Label-swap: real replicate-partition permutation",
-    subtitle = "DMRcaller-B, strict thresholds. Null = all 9 non-identity 3-vs-3 replicate\npartitions of the 6 ASO_VPA/ASO_CTRL replicates (exhaustive, not sampled).\nDashed line marks the locked pipeline bin size.",
+    subtitle = "DMRcaller-B, strict thresholds. Null = all 9 non-identity 3-vs-3 replicate\npartitions of the 6 ASO_VPA/ASO_CTRL replicates (exhaustive, not sampled).\nDashed line marks the selected pipeline bin size.",
     x = "Bin/window size (bp)", y = "Number of DMRs (log scale)"
   ) +
   theme_minimal(base_size = 12) +
@@ -56,21 +54,19 @@ ggsave(file.path(OUT_DIR, "labelswap_real_corrected.pdf"), p_ls,
        width = 9, height = 6.5, device = cairo_pdf)
 message("Saved: labelswap_real_corrected.pdf")
 
-# ---------------------------------------------------------------------------
-# PLOT 2: read-count, DMR count, faceted by threshold, locked panel highlighted
-# ---------------------------------------------------------------------------
+# PLOT 2: read-count, DMR count, faceted by threshold, selected panel highlighted
 rc_df <- read.csv("results/dmr_benchmark_readcount_real/readcount_real_summary.csv")
 rc_df <- rc_df[!is.na(rc_df$n_real) & !is.na(rc_df$n_scr_mean), ]
 rc_df$window_size <- as.numeric(rc_df$window_size)
 rc_df <- rc_df[order(rc_df$window_size), ]
-rc_df$is_locked <- rc_df$minDiff == LOCKED_MD
+rc_df$is_selected <- rc_df$minDiff == SELECTED_MD
 rc_df$minDiff_lab <- paste0("minDiff = ", rc_df$minDiff,
-                            ifelse(rc_df$is_locked, "  (locked)", ""))
+                            ifelse(rc_df$is_selected, "  (selected)", ""))
 rc_df$minDiff_lab <- factor(rc_df$minDiff_lab,
   levels = unique(rc_df$minDiff_lab[order(rc_df$minDiff)]))
 
 p_rc <- ggplot(rc_df, aes(x = window_size)) +
-  geom_rect(data = rc_df[rc_df$is_locked, ][1, ],
+  geom_rect(data = rc_df[rc_df$is_selected, ][1, ],
             aes(xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = Inf),
             fill = "#FFF6E5", inherit.aes = FALSE) +
   geom_ribbon(aes(ymin = pmin(n_real, n_scr_mean), ymax = pmax(n_real, n_scr_mean)),
@@ -80,7 +76,7 @@ p_rc <- ggplot(rc_df, aes(x = window_size)) +
   geom_line(aes(y = n_scr_mean, colour = "Scrambled (mean of 20 read-count permutations)"), linewidth = 1.0) +
   geom_point(aes(y = n_scr_mean, colour = "Scrambled (mean of 20 read-count permutations)",
                 shape = "Scrambled (mean of 20 read-count permutations)"), size = 2.6, fill = "white", stroke = 0.8) +
-  geom_vline(xintercept = LOCKED_WS, linetype = "dashed", colour = "grey40", linewidth = 0.5) +
+  geom_vline(xintercept = SELECTED_WS, linetype = "dashed", colour = "grey40", linewidth = 0.5) +
   scale_colour_manual(values = c("Real" = RED, "Scrambled (mean of 20 read-count permutations)" = GREY),
                       name = NULL) +
   scale_shape_manual(values = c("Real" = 17, "Scrambled (mean of 20 read-count permutations)" = 2),
@@ -90,7 +86,7 @@ p_rc <- ggplot(rc_df, aes(x = window_size)) +
   facet_wrap(~minDiff_lab, nrow = 1) +
   labs(
     title = "Read-count permutation: threshold sweep (DMR count)",
-    subtitle = "Shaded panel = locked threshold (minDiff = 0.2). Dashed line = locked bin size (300bp).",
+    subtitle = "Shaded panel = selected threshold (minDiff = 0.2). Dashed line = selected bin size (300bp).",
     x = "Bin/window size (bp)", y = "Number of DMRs (log scale)"
   ) +
   theme_minimal(base_size = 11) +
@@ -104,9 +100,7 @@ ggsave(file.path(OUT_DIR, "readcount_real_corrected.pdf"), p_rc,
        width = 14, height = 5.5, device = cairo_pdf)
 message("Saved: readcount_real_corrected.pdf")
 
-# ---------------------------------------------------------------------------
 # PLOT 3: read-count, genome coverage (Mb), same shading/highlighting
-# ---------------------------------------------------------------------------
 raw <- read.csv("results/dmr_benchmark_readcount_real/readcount_real_per_perm.csv")
 real_rows <- raw %>% filter(is_real)
 scr_rows  <- raw %>% filter(!is_real)
@@ -126,14 +120,14 @@ cov_df <- real_summary %>%
   arrange(window_size, minDiff)
 
 cov_df$window_size <- as.numeric(cov_df$window_size)
-cov_df$is_locked <- cov_df$minDiff == LOCKED_MD
+cov_df$is_selected <- cov_df$minDiff == SELECTED_MD
 cov_df$minDiff_lab <- paste0("minDiff = ", cov_df$minDiff,
-                             ifelse(cov_df$is_locked, "  (locked)", ""))
+                             ifelse(cov_df$is_selected, "  (selected)", ""))
 cov_df$minDiff_lab <- factor(cov_df$minDiff_lab,
   levels = unique(cov_df$minDiff_lab[order(cov_df$minDiff)]))
 
 p_cov <- ggplot(cov_df, aes(x = window_size)) +
-  geom_rect(data = cov_df[cov_df$is_locked, ][1, ],
+  geom_rect(data = cov_df[cov_df$is_selected, ][1, ],
             aes(xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = Inf),
             fill = "#FFF6E5", inherit.aes = FALSE) +
   geom_ribbon(aes(ymin = pmin(coverage_real_mb, coverage_scr_mb),
@@ -144,7 +138,7 @@ p_cov <- ggplot(cov_df, aes(x = window_size)) +
   geom_line(aes(y = coverage_scr_mb, colour = "Scrambled (mean of 20 read-count permutations)"), linewidth = 1.0) +
   geom_point(aes(y = coverage_scr_mb, colour = "Scrambled (mean of 20 read-count permutations)",
                 shape = "Scrambled (mean of 20 read-count permutations)"), size = 2.6, fill = "white", stroke = 0.8) +
-  geom_vline(xintercept = LOCKED_WS, linetype = "dashed", colour = "grey40", linewidth = 0.5) +
+  geom_vline(xintercept = SELECTED_WS, linetype = "dashed", colour = "grey40", linewidth = 0.5) +
   scale_colour_manual(values = c("Real" = RED, "Scrambled (mean of 20 read-count permutations)" = GREY),
                       name = NULL) +
   scale_shape_manual(values = c("Real" = 17, "Scrambled (mean of 20 read-count permutations)" = 2),
@@ -154,7 +148,7 @@ p_cov <- ggplot(cov_df, aes(x = window_size)) +
   facet_wrap(~minDiff_lab, nrow = 1) +
   labs(
     title = "Read-count permutation: genome coverage (Mb)",
-    subtitle = "Coverage = DMR count x actual mean called size. Shaded panel = locked threshold.\nDashed line = locked bin size (300bp).",
+    subtitle = "Coverage = DMR count x actual mean called size. Shaded panel = selected threshold.\nDashed line = selected bin size (300bp).",
     x = "Bin/window size (bp)", y = "DMR genome coverage (Mb, log scale)"
   ) +
   theme_minimal(base_size = 11) +

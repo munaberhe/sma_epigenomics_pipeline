@@ -29,7 +29,6 @@ CONTRASTS <- list(
        cond1="ASO_VPA", cond2="ASO_CTRL")
 )
 
-
 message("Loading pre-extracted SMN2 CX data...")
 load_smn2 <- function(condition) {
   message("  ", condition)
@@ -68,7 +67,6 @@ for (cond in CONDITIONS) {
           " | >=10x: ", sum(m$readsN >= 10))
 }
 
-
 message("\nStage 1: canonical DMR parameters...")
 dmr_predup <- list()
 for (ct in CONTRASTS) {
@@ -87,7 +85,6 @@ for (ct in CONTRASTS) {
   }, error=function(e) message("  ", ct$name, ": ERROR - ", e$message))
 }
 saveRDS(dmr_predup, file.path(OUT, "dmr_canonical_predup_SMN2.rds"))
-
 
 message("\nStage 2: sensitive sweep...")
 PARAM_SETS <- list(
@@ -117,7 +114,6 @@ for (ct in CONTRASTS) {
   }
 }
 saveRDS(dmr_sensitive, file.path(OUT, "dmr_sensitive_predup_SMN2.rds"))
-
 
 message("\nPlotting comparison...")
 dedup_cache <- readRDS("results/dmr/meth_pooled_cache.rds")

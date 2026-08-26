@@ -31,7 +31,6 @@ CONTRASTS <- list(
        title="VPA in ASO context", short="VPA_in_ASO")
 )
 
-
 run_enrichment <- function(ct) {
   message("\n=== ", ct$title, " ===")
   if (!file.exists(ct$csv)) { message("  missing CSV"); return(NULL) }
@@ -66,7 +65,6 @@ run_enrichment <- function(ct) {
 
 results <- lapply(CONTRASTS, run_enrichment)
 names(results) <- sapply(CONTRASTS, function(x) x$short)
-
 
 make_dotplot <- function(res, type="go", highlight=NULL) {
   enrich <- if (type=="go") res$go else res$kegg
@@ -115,7 +113,6 @@ for (nm in names(results)) {
   message("Saved: ", nm)
 }
 
-
 # Find pathways shared between VPA_alone and VPA_in_ASO to highlight
 vpa_terms <- if (!is.null(results$VPA_alone$go))
   as.data.frame(results$VPA_alone$go)$Description else character(0)
@@ -135,7 +132,7 @@ go_plots <- lapply(names(results), function(nm) {
 
 combined_go <- wrap_plots(go_plots, ncol=2) +
   plot_annotation(
-    title   = "GO Biological Process — four pairwise contrasts",
+    title   = "GO Biological Process - four pairwise contrasts",
     caption = paste0("Highlighted pathways (if any): unique to VPA-in-ASO context",
                      " (absent from VPA-alone). n=", length(vpa_unique), " such pathways."),
     theme   = theme(
@@ -149,14 +146,13 @@ ggsave(file.path(OUT, "GO_4contrasts_combined.pdf"),
 ggsave(file.path(OUT, "GO_4contrasts_combined.png"),
        combined_go, width=18, height=14, dpi=150)
 
-
 kegg_plots <- lapply(names(results), function(nm) {
   make_dotplot(results[[nm]], "kegg")
 })
 
 combined_kegg <- wrap_plots(kegg_plots, ncol=2) +
   plot_annotation(
-    title = "KEGG pathways — four pairwise contrasts",
+    title = "KEGG pathways - four pairwise contrasts",
     theme = theme(plot.title = element_text(face="bold", size=13))
   )
 

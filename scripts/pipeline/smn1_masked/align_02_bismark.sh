@@ -24,7 +24,7 @@ mkdir -p logs results/alignments_smn1_masked/bs
 
 source scripts/check_scratch.sh 150
 
-# all 12 samples — array index picks one per job
+# all 12 samples - array index picks one per job
 SAMPLES=(
     "ASO_CTRL_1"  "ASO_CTRL_2"  "ASO_CTRL_3"
     "ASO_VPA_1"   "ASO_VPA_2"   "ASO_VPA_3"

@@ -6,7 +6,7 @@
 #   ASO_VPA       = #C0392B  (red)       one red only
 #   Scramble_VPA  = #F0A500  (amber)
 # Direction (hypo/hyper) mirrors condition: blue = hypo, red = hyper
-# All reds in active scripts must be #C0392B — not #C0392B, #A84B2F, or #D55E00
+# All reds in active scripts must be #C0392B - not #C0392B, #A84B2F, or #D55E00
 
 SMA_PALETTE <- list(
   conditions = c(

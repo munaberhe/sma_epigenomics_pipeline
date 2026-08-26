@@ -18,7 +18,6 @@ COND_COLS <- c(
   Scramble_VPA  = "#F0A500"
 )
 
-
 message("Building MDS plot...")
 cor_csv <- "results/qc/methylation/methylation_correlation.csv"
 if (file.exists(cor_csv)) {
@@ -60,7 +59,6 @@ if (file.exists(cor_csv)) {
 } else {
   message("WARNING: correlation CSV not found at ", cor_csv)
 }
-
 
 message("Building DMR size distribution...")
 

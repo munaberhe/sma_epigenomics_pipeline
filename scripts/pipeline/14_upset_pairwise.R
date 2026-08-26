@@ -10,8 +10,8 @@ setwd("/gpfs/scratch/bt25018/sma_epigenomics_pipeline")
 OUT <- "results/figures/upset"
 dir.create(OUT, recursive=TRUE, showWarnings=FALSE)
 
-# load DMRs — use all DMRs from locked genome-wide parameters
-# no additional cytosinesCount filter — already applied during DMR calling
+# load DMRs - use all DMRs from selected genome-wide parameters
+# no additional cytosinesCount filter - already applied during DMR calling
 aso_alone  <- readRDS("results/dmr/dmr_ASO_CTRL_vs_Scramble_CTRL.rds")
 vpa_alone  <- readRDS("results/dmr/dmr_Scramble_VPA_vs_Scramble_CTRL.rds")
 aso_in_vpa <- readRDS("results/dmr/dmr_ASO_VPA_vs_Scramble_VPA.rds")
@@ -24,12 +24,12 @@ cat("  ASO in VPA: ", length(aso_in_vpa), "\n")
 cat("  VPA in ASO: ", length(vpa_in_aso), "\n")
 
 # Step 1: build DMR-centric universe
-# merge all DMRs into non-overlapping loci — one row = one unique genomic locus
+# merge all DMRs into non-overlapping loci - one row = one unique genomic locus
 message("Building DMR-centric universe (reduce all DMRs to non-overlapping loci)...")
 universe <- reduce(c(aso_alone, vpa_alone, aso_in_vpa, vpa_in_aso))
 message("  Unique loci: ", length(universe))
 
-# Step 2: membership matrix — one row per locus, one col per contrast
+# Step 2: membership matrix - one row per locus, one col per contrast
 # 1 = this locus is covered by a significant DMR in that contrast
 message("Computing locus-level membership...")
 mat <- data.frame(
@@ -39,9 +39,9 @@ mat <- data.frame(
   VPA_in_ASO = as.integer(overlapsAny(universe, vpa_in_aso))
 )
 
-# Step 3: sanity check — column sums should approximate DMR counts
+# Step 3: sanity check - column sums should approximate DMR counts
 # (not exact because reduce() merges overlapping DMRs)
-cat("\nColumn sums (loci per contrast — should be close to DMR counts above):\n")
+cat("\nColumn sums (loci per contrast - should be close to DMR counts above):\n")
 print(colSums(mat))
 cat("Total unique loci in union:", nrow(mat), "\n")
 
@@ -81,7 +81,7 @@ write.csv(summary_df,
           file.path(OUT, "upset_intersection_summary.csv"),
           row.names=FALSE)
 
-# Step 5: plot — highlight thesis-critical intersections
+# Step 5: plot - highlight thesis-critical intersections
 # colour the four thesis-critical bars in red
 thesis_intersections <- list(
   c(0,0,1,0),  # ASO in VPA only

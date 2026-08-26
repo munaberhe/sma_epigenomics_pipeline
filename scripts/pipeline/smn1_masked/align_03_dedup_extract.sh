@@ -75,7 +75,7 @@ samtools quickcheck "$DEDUP_BAM" || {
     exit 1
 }
 
-# extract methylation — CX mode gives all contexts, we filter to CpG after
+# extract methylation - CX mode gives all contexts, we filter to CpG after
 echo "[$(date)] Extracting methylation for $SAMPLE"
 bismark_methylation_extractor \
     --paired-end \

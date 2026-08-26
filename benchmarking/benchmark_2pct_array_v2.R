@@ -1,7 +1,6 @@
 .libPaths("~/R/library")
 source("scripts/benchmarking/parameter_benchmark_helpers.R")
 
-# ---------------------------------------------------------------------------
 # Intermediate-threshold (minProportionDifference = 0.02) benchmark, matching
 # Radu's selection from the SMN2 sensitivity scan. Reuses every existing,
 # validated function from parameter_benchmark_helpers.R unchanged --
@@ -23,7 +22,6 @@ source("scripts/benchmarking/parameter_benchmark_helpers.R")
 #   tasks 1-12:  label_swap      (6 window sizes x 2 methods)
 #   tasks 13-24: read_count_perm (6 window sizes x 2 methods, 20 perms each,
 #                matching benchmark_readcount_array.R's averaging convention)
-# ---------------------------------------------------------------------------
 
 run_dmrs_one_intermediate <- function(treat, ctrl, method, ws, region) {
   th <- get_thresholds(method, strict = TRUE, ws = ws)  # base: strict mode

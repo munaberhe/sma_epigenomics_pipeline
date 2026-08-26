@@ -62,12 +62,10 @@ meth_a <- load_chr(cond_a)
 meth_b <- load_chr(cond_b)
 message("Pooled CpGs: ", format(length(meth_a), big.mark=","))
 
-# ---------------------------------------------------------------------------
 # Build the tested windows independently of computeDMRs' internal filtering.
 # These are the 300bp bins that meet the minimum coverage/cytosine criteria
 # and were therefore eligible to be tested -- this is the correct background
 # for obs/exp annotation enrichment, NOT a genome-wide CpG background.
-# ---------------------------------------------------------------------------
 message("Building tested-window background...")
 chr_len <- max(end(meth_a), end(meth_b))
 bins <- GRanges(seqnames = CHR,
@@ -93,9 +91,7 @@ message("Tested windows on ", CHR, ": ", length(tested))
 saveRDS(tested, tw_path)
 message("Saved tested windows: ", tw_path)
 
-# ---------------------------------------------------------------------------
 # DMR calling parameters
-# ---------------------------------------------------------------------------
 set.seed(42)
 dmrs <- computeDMRs(
   methylationData1        = meth_a,

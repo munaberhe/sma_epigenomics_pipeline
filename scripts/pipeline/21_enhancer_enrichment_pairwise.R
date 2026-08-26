@@ -4,7 +4,7 @@
 # Method: regioneR permutation test (1000 permutations, chr-matched random regions).
 # Caveat: H9 is an ESC line; HEK293T is not ESC-derived. Enrichment reflects
 # overlap with regions that were enhancer-active in stem cells.
-# Input: results/dmr/dmr_<contrast>.rds (locked params: binSize=300, minDiff=0.20, p<0.01)
+# Input: results/dmr/dmr_<contrast>.rds (selected params: binSize=300, minDiff=0.20, p<0.01)
 # Output: results/enhancer_pairwise/
 
 .libPaths(c("~/R/library", .libPaths()))

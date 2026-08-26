@@ -14,7 +14,7 @@ smn1_mask_chr: chr5
 smn1_mask_start: 70924941
 smn1_mask_end: 70953015
 
-# DMR calling parameters - locked with Radu Zabet, 5 May 2026
+# DMR calling parameters - selected with Radu Zabet, 5 May 2026
 dmr_bin_size: 300
 dmr_min_diff: 0.20
 dmr_p_value: 0.01

@@ -12,7 +12,7 @@ NAVY <- "#1B4F8A"
 RED  <- "#B2182B"
 GREY <- "#6B7280"
 
-# ---- recompute summary including scrambled-side mean DMR size ----
+# recompute summary including scrambled-side mean DMR size
 raw <- read.csv("results/dmr_benchmark_readcount_real/readcount_real_per_perm.csv")
 
 real_rows <- raw %>% filter(is_real)

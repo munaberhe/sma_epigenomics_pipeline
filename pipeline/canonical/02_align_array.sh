@@ -36,7 +36,7 @@ bismark --genome $REF \
 BAM=$(ls ${OUT}/${SAMPLE}*bismark*bt2_pe.bam 2>/dev/null | head -1 || true)
 if [ -n "$BAM" ] && [ -f "$BAM" ]; then
   samtools quickcheck "$BAM" || { echo "BAM failed quickcheck: $BAM"; exit 1; }
-  echo "[$(date)] Alignment OK — removing trimmed FASTQs for $SAMPLE"
+  echo "[$(date)] Alignment OK - removing trimmed FASTQs for $SAMPLE"
   rm -f ${TRIMMED}/${SAMPLE}_1_val_1.fq.gz \
         ${TRIMMED}/${SAMPLE}_2_val_2.fq.gz
   rm -rf ${OUT}/tmp_${SAMPLE}

@@ -1,12 +1,10 @@
 # labelswap_real_helpers.R
-# ---------------------------------------------------------------------------
 # Real replicate-label permutation for the ASO_VPA vs ASO_CTRL contrast on
 # chr1. Replaces the previously broken A<->B swap (which is symmetric under
 # the score / Fisher tests used by DMRcaller and so produces n_scrambled
 # == n_real exactly, with delta = 0 and ratio = 1 for every cell).
 #
 # Design
-# ------
 # 6 ASO replicates: ASO_VPA_{1,2,3} + ASO_CTRL_{1,2,3}.
 # A 3-vs-3 partition of these 6 replicates gives one (group A pool, group B
 # pool) pair. choose(6,3) = 20 partitions exist. Each partition appears as
@@ -19,7 +17,6 @@
 # Pooling math: readBismarkPool() from DMRcaller, identical to the original
 # build_chr1_cache.R. This means the identity permutation (real call)
 # reproduces the existing n_real numbers exactly.
-# ---------------------------------------------------------------------------
 
 suppressPackageStartupMessages({
   library(DMRcaller)
@@ -28,7 +25,7 @@ suppressPackageStartupMessages({
   library(parallel)
 })
 
-# ---- paths and constants (match parameter_benchmark_helpers.R) ----
+# paths and constants (match parameter_benchmark_helpers.R)
 COV_DIR     <- "results/alignments/bs/by_chr"
 OUT_DIR     <- "results/dmr_benchmark_labelswap_real"
 CHROM       <- "chr1"
@@ -41,7 +38,7 @@ ASO_VPA_REPS  <- paste0("ASO_VPA_",  1:3)
 ASO_CTRL_REPS <- paste0("ASO_CTRL_", 1:3)
 ALL_6         <- c(ASO_VPA_REPS, ASO_CTRL_REPS)  # 1:6 maps to these names
 
-# ---- helpers --------------------------------------------------------------
+# helpers
 
 rep_path <- function(sample_name) {
   file.path(COV_DIR, paste0(sample_name, "_", CHROM, ".CpG_report.txt.gz"))
@@ -103,7 +100,7 @@ build_pair_for_perm <- function(perm_row) {
   )
 }
 
-# ---- threshold lookup (matches parameter_benchmark_helpers.R::get_thresholds, strict=TRUE)
+# threshold lookup (matches parameter_benchmark_helpers.R::get_thresholds, strict=TRUE)
 get_thresholds_strict <- function(method, ws = 300) {
   list(
     pval    = 0.01,
@@ -115,7 +112,7 @@ get_thresholds_strict <- function(method, ws = 300) {
   )
 }
 
-# ---- single DMR call (matches run_dmrs_one logic) -------------------------
+# single DMR call (matches run_dmrs_one logic)
 run_dmr_call <- function(treat, ctrl, method, ws, kernel = "triangular", region) {
   th <- get_thresholds_strict(method, ws)
   setTimeLimit(cpu = 7200, elapsed = 7200, transient = TRUE)

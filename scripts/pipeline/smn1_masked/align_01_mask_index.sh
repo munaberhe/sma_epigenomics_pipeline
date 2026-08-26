@@ -12,7 +12,7 @@
 # SMN1 and SMN2 share >99% sequence identity so Bismark discards ambiguously
 # mapping reads by default. Masking SMN1 with Ns forces all SMN-derived reads
 # to map to SMN2, giving us full coverage at the SMN2 locus.
-# Note: this means we can't distinguish SMN1 vs SMN2 methylation — that's
+# Note: this means we can't distinguish SMN1 vs SMN2 methylation - that's
 # acceptable because the question is locus-level, not paralog-resolved.
 
 set -euo pipefail
@@ -54,7 +54,7 @@ else
     echo "[$(date)] Masked FASTA already present, reusing."
 fi
 
-# quick sanity check — first bases of SMN1 region should all be N
+# quick sanity check - first bases of SMN1 region should all be N
 echo "[$(date)] Sanity check (should see Ns):"
 samtools faidx "$REF_DST" chr5:70924941-70925000
 

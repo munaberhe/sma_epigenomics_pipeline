@@ -11,7 +11,6 @@ setwd("/gpfs/scratch/bt25018/sma_epigenomics_pipeline")
 OUT <- "results/pairwise_context_scan"
 dir.create(OUT, recursive=TRUE, showWarnings=FALSE)
 
-
 message("Loading DMR sets...")
 aso_alone  <- readRDS("results/dmr/dmr_ASO_CTRL_vs_Scramble_CTRL.rds")
 vpa_alone  <- readRDS("results/dmr/dmr_Scramble_VPA_vs_Scramble_CTRL.rds")
@@ -23,7 +22,6 @@ cat("VPA alone:", length(vpa_alone), "\n")
 cat("ASO in VPA:", length(aso_in_vpa), "\n")
 cat("VPA in ASO:", length(vpa_in_aso), "\n")
 
-
 # In ASO_in_VPA but NOT in ASO_alone
 message("\nGroup 1: ASO context-dependent loci...")
 aso_context <- aso_in_vpa[!overlapsAny(aso_in_vpa, aso_alone)]
@@ -33,14 +31,12 @@ cat("ASO context-dependent:", length(aso_context), "\n")
 aso_context$meth_diff <- abs(aso_context$proportion1 - aso_context$proportion2)
 aso_context <- aso_context[order(aso_context$meth_diff, decreasing=TRUE)]
 
-
 message("Group 2: VPA context-dependent loci...")
 vpa_context <- vpa_in_aso[!overlapsAny(vpa_in_aso, vpa_alone)]
 cat("VPA context-dependent:", length(vpa_context), "\n")
 
 vpa_context$meth_diff <- abs(vpa_context$proportion1 - vpa_context$proportion2)
 vpa_context <- vpa_context[order(vpa_context$meth_diff, decreasing=TRUE)]
-
 
 message("Annotating top hits...")
 library(ChIPseeker)
@@ -70,7 +66,6 @@ write.csv(aso_anno, file.path(OUT, "ASO_context_dependent_top200.csv"),
 write.csv(vpa_anno, file.path(OUT, "VPA_context_dependent_top200.csv"),
           row.names=FALSE)
 
-
 cat("\nTop 20 ASO context-dependent genes:\n")
 print(head(aso_anno[!is.na(aso_anno$SYMBOL),
   c("seqnames","start","end","meth_diff","SYMBOL","annotation")], 20))
@@ -78,7 +73,6 @@ print(head(aso_anno[!is.na(aso_anno$SYMBOL),
 cat("\nTop 20 VPA context-dependent genes:\n")
 print(head(vpa_anno[!is.na(vpa_anno$SYMBOL),
   c("seqnames","start","end","meth_diff","SYMBOL","annotation")], 20))
-
 
 p1 <- ggplot(as.data.frame(aso_context[1:min(500,length(aso_context))]),
              aes(x=meth_diff)) +
@@ -100,7 +94,7 @@ p2 <- ggplot(as.data.frame(vpa_context[1:min(500,length(vpa_context))]),
 
 combined <- (p1 | p2) +
   plot_annotation(
-    title="Context-dependent DMRs — pairwise framework",
+    title="Context-dependent DMRs - pairwise framework",
     theme=theme(plot.title=element_text(face="bold", size=13))
   )
 

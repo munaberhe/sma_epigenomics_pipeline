@@ -129,7 +129,6 @@ for (contrast in CONTRASTS_V) {
   }
 }
 
-
 # Radu item 7: count genes in the chr13 60-80 Mb VPA hyper-DMR hotspot.
 # Uses the annotated CSV already written by the loop above.
 message("\nchr13 60-80 Mb DMR gene annotation (Radu item 7)...")
@@ -333,7 +332,7 @@ for (ct in CONTRASTS) {
   }
 }
 
-# UpSet plot across the 3 main contrasts ----
+# UpSet plot across the 3 main contrasts
 # load + apply >=6 CpG filter
 aso     <- readRDS("results/dmr/dmr_ASO_CTRL_vs_Scramble_CTRL.rds")
 aso_vpa <- readRDS("results/dmr/dmr_ASO_VPA_vs_Scramble_CTRL.rds")
@@ -347,13 +346,13 @@ scr_vpa <- hc(scr_vpa)
 # membership matrix for UpSetR.
 # Each DMR appears exactly once, owned by the earliest set it belongs to.
 # Ownership = range came FROM that set (not just overlaps it).
-# A range from set B that overlaps a set-A DMR does NOT get its own row —
+# A range from set B that overlaps a set-A DMR does NOT get its own row -
 # the set-A row already has B=1 via findOverlaps.
 # This guarantees colSums(df)[i] == length(sets[[i]]) with no inflation.
 # (Previous approach used unique(do.call(c,sets)) which only deduplicates
 # IDENTICAL ranges; non-identical overlapping ranges from other sets were
 # kept as separate rows and falsely marked as belonging to the earlier set,
-# inflating set bars — e.g. 151 real ASO DMRs appearing as 159.)
+# inflating set bars - e.g. 151 real ASO DMRs appearing as 159.)
 make_membership <- function(sets, set_names) {
   sets    <- lapply(sets, function(gr) sort(unique(gr)))
   owned   <- NULL
@@ -389,7 +388,7 @@ message("  raw set sizes:   ",
               sep="=", collapse=", "))
 message("  matrix col sums: ",
         paste(colnames(df), colSums(df), sep="=", collapse=", "))
-# These should match — if they don't, findOverlaps found cross-set inflations
+# These should match - if they don't, findOverlaps found cross-set inflations
 
 # 3-contrast upset
 # each bar = DMRs present in EXACTLY that combination of sets (not "at least").
@@ -449,7 +448,7 @@ dir_df$direction <- factor(dir_df$direction,
                            levels=c('Hypermethylated','Hypomethylated'))
 totals_df <- dir_df %>% group_by(contrast) %>% summarise(total=sum(n))
 
-# ---- slide 16: DMR_hypo_hyper_counts_bar (log10 stacked) ----
+# slide 16: DMR_hypo_hyper_counts_bar (log10 stacked)
 # label positioning was previously stuck at total y, overlapping the hyper segment.
 # move totals above the bar and inset segment labels inside their stack.
 p_dir <- ggplot(dir_df, aes(x=contrast, y=n, fill=direction)) +
@@ -477,7 +476,7 @@ ggsave(file.path(OUT_DIR, 'DMR_hypo_hyper_counts_bar.pdf'),
        p_dir, width=10, height=6, device=cairo_pdf)
 message("saved: DMR_hypo_hyper_counts_bar.pdf")
 
-# ---- slide 16: DMR_hypo_hyper_counts_bar_v2 (linear axis, side-by-side) ----
+# slide 16: DMR_hypo_hyper_counts_bar_v2 (linear axis, side-by-side)
 # log10 hides the actual magnitude; linear + dodge is easier to read in the deck.
 # small bars get a clipped readable label by drawing text above the bar.
 dir_df_v2 <- dir_df %>%
@@ -508,7 +507,7 @@ ggsave(file.path(OUT_DIR, 'slide16_dmr_counts_bar_v2.pdf'),
        p_dir_v2, width=11, height=6, device=cairo_pdf)
 message("saved: slide16_dmr_counts_bar_v2.pdf")
 
-# ---- slide 16: slide16_dmr_diverging (mirrored, SHARED y-axis) ----
+# slide 16: slide16_dmr_diverging (mirrored, SHARED y-axis)
 # previous version used scales='free' per facet which destroyed comparability.
 # use a single signed y-axis (hypo positive, hyper negative) on log10 magnitude
 # with symmetric breaks so all contrasts share the same scale.
@@ -552,7 +551,7 @@ ggsave(file.path(OUT_DIR, 'slide16_dmr_diverging.pdf'),
        p_div, width=11, height=6.5, device=cairo_pdf)
 message("saved: slide16_dmr_diverging.pdf")
 
-# ---- slide 18: DMR_violin_hypo_hyper + slide18_violin_hypo_hyper ----
+# slide 18: DMR_violin_hypo_hyper + slide18_violin_hypo_hyper
 # build violin input: per-DMR proportion in cond1 + cond2, separated by direction
 message("generating DMR violin plot hypo/hyper...")
 
@@ -616,7 +615,9 @@ ggsave(file.path(OUT_DIR, 'slide18_violin_hypo_hyper.pdf'),
        p_viol_18, width=14, height=6.5, device=cairo_pdf)
 message("saved: slide18_violin_hypo_hyper.pdf")
 
-message("\ndone. all outputs in: ", OUT_DIR)# ---- upset plot: simple binary matrix ----
+message("\ndone. all outputs in: ", OUT_DIR)
+
+# upset plot: simple binary matrix
 aso     <- readRDS("results/dmr/dmr_ASO_CTRL_vs_Scramble_CTRL.rds")
 aso_vpa <- readRDS("results/dmr/dmr_ASO_VPA_vs_Scramble_CTRL.rds")
 scr_vpa <- readRDS("results/dmr/dmr_Scramble_VPA_vs_Scramble_CTRL.rds")
@@ -680,7 +681,7 @@ dir_df$direction <- factor(dir_df$direction,
                            levels=c('Hypermethylated','Hypomethylated'))
 totals_df <- dir_df %>% group_by(contrast) %>% summarise(total=sum(n))
 
-# ---- slide 16: DMR_hypo_hyper_counts_bar (log10 stacked) ----
+# slide 16: DMR_hypo_hyper_counts_bar (log10 stacked)
 # label positioning was previously stuck at total y, overlapping the hyper segment.
 # move totals above the bar and inset segment labels inside their stack.
 p_dir <- ggplot(dir_df, aes(x=contrast, y=n, fill=direction)) +
@@ -708,7 +709,7 @@ ggsave(file.path(OUT_DIR, 'DMR_hypo_hyper_counts_bar.pdf'),
        p_dir, width=10, height=6, device=cairo_pdf)
 message("saved: DMR_hypo_hyper_counts_bar.pdf")
 
-# ---- slide 16: DMR_hypo_hyper_counts_bar_v2 (linear axis, side-by-side) ----
+# slide 16: DMR_hypo_hyper_counts_bar_v2 (linear axis, side-by-side)
 # log10 hides the actual magnitude; linear + dodge is easier to read in the deck.
 # small bars get a clipped readable label by drawing text above the bar.
 dir_df_v2 <- dir_df %>%
@@ -739,7 +740,7 @@ ggsave(file.path(OUT_DIR, 'slide16_dmr_counts_bar_v2.pdf'),
        p_dir_v2, width=11, height=6, device=cairo_pdf)
 message("saved: slide16_dmr_counts_bar_v2.pdf")
 
-# ---- slide 16: slide16_dmr_diverging (mirrored, SHARED y-axis) ----
+# slide 16: slide16_dmr_diverging (mirrored, SHARED y-axis)
 # previous version used scales='free' per facet which destroyed comparability.
 # use a single signed y-axis (hypo positive, hyper negative) on log10 magnitude
 # with symmetric breaks so all contrasts share the same scale.
@@ -783,7 +784,7 @@ ggsave(file.path(OUT_DIR, 'slide16_dmr_diverging.pdf'),
        p_div, width=11, height=6.5, device=cairo_pdf)
 message("saved: slide16_dmr_diverging.pdf")
 
-# ---- slide 18: DMR_violin_hypo_hyper + slide18_violin_hypo_hyper ----
+# slide 18: DMR_violin_hypo_hyper + slide18_violin_hypo_hyper
 # build violin input: per-DMR proportion in cond1 + cond2, separated by direction
 message("generating DMR violin plot hypo/hyper...")
 

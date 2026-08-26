@@ -92,7 +92,6 @@ p <- ggplot(prof_df, aes(x=pos, y=meth, colour=condition)) +
   theme_classic(base_size=11) +
   theme(plot.title=element_text(face="bold"), legend.position="right")
 
-
 # Save via tmp to avoid container write issues
 tmp_pdf <- '/tmp/TSS_metaplot.pdf'
 ggsave(tmp_pdf, p, width=9, height=5)
@@ -155,7 +154,7 @@ Heatmap(heatmap_mat,
         show_column_names=TRUE,
         cluster_rows=TRUE,
         cluster_columns=TRUE,
-        column_title="Top 500 ASO DMRs — sample clustering",
+        column_title="Top 500 ASO DMRs - sample clustering",
         row_title=paste0(nrow(heatmap_mat), " DMRs"),
         use_raster=TRUE)
 dev.off()

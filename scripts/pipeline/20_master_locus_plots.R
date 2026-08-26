@@ -1,5 +1,4 @@
 #!/usr/bin/env Rscript
-# ============================================================================
 # 20_master_locus_plots.R
 # Generates all CpG methylation locus plots for the thesis.
 # Sections:
@@ -10,14 +9,12 @@
 #   5. Pairwise context-dependent candidates (9 genes, ASO or VPA specific)
 # All candidate coordinates taken from pairwise_context_scan scored CSVs.
 # Usage: sbatch --mem=64G --wrap="Rscript scripts/pipeline/20_master_locus_plots.R"
-# ============================================================================
 .libPaths(c("~/R/library", .libPaths()))
 suppressPackageStartupMessages({
   library(DMRcaller)
   library(GenomicRanges)
 })
 setwd("/gpfs/scratch/bt25018/sma_epigenomics_pipeline")
-
 
 OUT_SMN2      <- "results/smn2_locus_final"
 OUT_SENSITIVE <- "results/smn2_sensitive_locus"
@@ -32,7 +29,6 @@ dir.create(OUT_ASO_RESTR, recursive=TRUE, showWarnings=FALSE)
 dir.create(OUT_VPA_RESTR, recursive=TRUE, showWarnings=FALSE)
 dir.create(OUT_SMN2_ALL,  recursive=TRUE, showWarnings=FALSE)
 
-
 COND_COLS <- c(
   ASO_CTRL      = "#1F3A5F",
   Scramble_CTRL = "#6B7280",
@@ -42,7 +38,6 @@ COND_COLS <- c(
 DMR_COL  <- "#C0392B"
 WIN_SIZE <- 300
 MIN_COV  <- 3
-
 
 CONTRASTS <- list(
   list(name="ASO_CTRL_vs_Scramble_CTRL",
@@ -58,7 +53,6 @@ CONTRASTS <- list(
        cond_a="ASO_CTRL", cond_b="ASO_VPA",
        label="VPA effect on ASO background")
 )
-
 
 LOCI_COORDS <- list(
   SMN1 = list(chr="chr5", start=70924941, end=70953015, strand="+"),
@@ -108,7 +102,6 @@ build_gene_gff <- function(locus) {
           strand=locus$strand, type="gene", name=locus$name)
 }
 
-
 plot_one <- function(meth_a, meth_b, ct, region, gff, title,
                      dmrs=NULL, annotation=NULL,
                      exon_labels=NULL, flank=2000) {
@@ -130,7 +123,7 @@ plot_one <- function(meth_a, meth_b, ct, region, gff, title,
     plotPoints       = TRUE
   )
 
-  # DMR overdraw — red boxes at top of methylation panel
+  # DMR overdraw - red boxes at top of methylation panel
   # usr y-range is -0.256 to 1.256; methylation occupies 0 to 1
   # so ybottom=0.88, ytop=1.00 places boxes at the top of the data area
   if (!is.null(dmrs) && length(dmrs) > 0 && length(dmrs) <= 30) {
@@ -163,7 +156,6 @@ plot_one <- function(meth_a, meth_b, ct, region, gff, title,
   if (!is.null(annotation))
     mtext(annotation, side=3, line=0.2, cex=0.7, col="grey40", adj=1)
 }
-
 
 message("Loading methylation cache...")
 meth_pooled <- readRDS("results/dmr/meth_pooled_cache.rds")
@@ -202,7 +194,6 @@ get_dmrs <- function(ct_name, region) {
   subsetByOverlaps(dmr_results[[ct_name]], region)
 }
 
-
 # SECTION 1: SMN2 locus (masked, all 4 contrasts)
 
 message("Plotting SMN2 locus (masked)...")
@@ -223,7 +214,6 @@ for (ct in CONTRASTS) {
   )
   dev.off()
 }
-
 
 # SECTION 2: SMN2 sensitive scan locus (all 4 contrasts)
 
@@ -248,7 +238,6 @@ for (ct in CONTRASTS) {
   )
   dev.off()
 }
-
 
 # SECTION 3: Gene locus plots helper function
 
@@ -290,7 +279,6 @@ plot_gene_locus <- function(locus, out_dir) {
   }
   dev.off()
 }
-
 
 # synergy candidates: DMR in both ASO_in_VPA and VPA_in_ASO,
 # absent from corresponding single-drug contrast.

@@ -14,7 +14,6 @@ setwd("/gpfs/scratch/bt25018/sma_epigenomics_pipeline")
 OUT <- "results/thesis_figures/smn2_extended_igv"
 dir.create(OUT, recursive=TRUE, showWarnings=FALSE)
 
-
 SMN2_START <- 70049638
 SMN2_END   <- 70078522
 FLANK      <- 50000
@@ -23,7 +22,6 @@ PLOT_END   <- SMN2_END   + FLANK
 CHR        <- "chr5"
 
 REGION <- GRanges(CHR, IRanges(PLOT_START, PLOT_END))
-
 
 COND_COLS <- c(
   ASO_CTRL      = "#1F3A5F",
@@ -45,13 +43,11 @@ H3K27_VPA    <- "#6B2D8B"
 
 message("Loading annotation tracks...")
 
-
 cgi_raw <- read.table("data/reference/cpg_islands_hg38.bed",
                       header=FALSE, sep="\t", stringsAsFactors=FALSE)
 cgi <- GRanges(cgi_raw[,1], IRanges(cgi_raw[,2], cgi_raw[,3]))
 cgi <- as.data.frame(subsetByOverlaps(cgi, REGION))
 message("  CpG islands: ", nrow(cgi))
-
 
 h9_raw <- read.table(gzfile("data/reference/H9_predicted_non_promoter_non_fragments.bed.gz"),
                      header=TRUE, sep="\t", stringsAsFactors=FALSE)
@@ -59,13 +55,11 @@ h9_enh <- GRanges(h9_raw$seqnames, IRanges(h9_raw$start, h9_raw$end))
 h9_enh <- as.data.frame(subsetByOverlaps(h9_enh, REGION))
 message("  H9 enhancers: ", nrow(h9_enh))
 
-
 ccre_raw <- read.table("data/reference/encode_cCREs_hg38.bed",
                        header=FALSE, sep="\t", stringsAsFactors=FALSE)
 ccre <- GRanges(ccre_raw[,1], IRanges(ccre_raw[,2], ccre_raw[,3]))
 ccre <- as.data.frame(subsetByOverlaps(ccre, REGION))
 message("  ENCODE cCREs: ", nrow(ccre))
-
 
 h3k27_ctrl <- tryCatch({
   r1 <- import("data/external/h3k27ac_gse246399/H3K27ac_CTRL_Rep1.narrowPeak.gz", format="narrowPeak")
@@ -80,7 +74,6 @@ h3k27_vpa <- tryCatch({
 
 message("  H3K27ac CTRL peaks: ", nrow(h3k27_ctrl))
 message("  H3K27ac VPA peaks:  ", nrow(h3k27_vpa))
-
 
 CONTRASTS <- list(
   list(name="ASO_CTRL_vs_Scramble_CTRL",   label="ASO alone"),
@@ -105,7 +98,6 @@ if (!is.null(dmr_df) && nrow(dmr_df) > 0) {
   message("  No DMRs in region")
   dmr_df <- data.frame(seqnames=character(), start=numeric(), end=numeric(), contrast=character())
 }
-
 
 # Load sensitive DMRs (unmasked canonical data, all contrasts)
 sens_dmr <- tryCatch({
@@ -142,7 +134,6 @@ meth_df <- do.call(rbind, lapply(names(COND_COLS), function(cond) {
 }))
 meth_df$condition <- factor(meth_df$condition, levels=names(COND_COLS))
 
-
 message("Parsing exon structure...")
 gtf_cmd <- paste0("zcat data/reference/Homo_sapiens.GRCh38.109.chr.gtf.gz | ",
                   "grep -w SMN2 | awk '$3==\"exon\"'")
@@ -164,7 +155,6 @@ intron_df <- data.frame(
 )
 
 message("  Exons: ", nrow(exons))
-
 
 theme_track <- function() {
   theme_classic(base_size=14) +
@@ -343,7 +333,6 @@ p_exon <- ggplot() +
     legend.position = "none",
     plot.margin  = margin(2,10,5,10)
   )
-
 
 layout <- "
 A

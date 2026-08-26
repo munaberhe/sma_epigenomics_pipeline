@@ -21,10 +21,10 @@ for SAMPLE in "${SAMPLES[@]}"; do
   CX=$(ls ${OUT}/${SAMPLE}*CX_report.txt.gz 2>/dev/null | head -1 || true)
   if [ -n "$CX" ] && [ -f "$CX" ]; then
     SIZE=$(du -sh "$CX" | cut -f1)
-    echo "PASS: $SAMPLE — $CX ($SIZE)"
+    echo "PASS: $SAMPLE - $CX ($SIZE)"
     ((PASS++))
   else
-    echo "FAIL: $SAMPLE — no CX report found"
+    echo "FAIL: $SAMPLE - no CX report found"
     ((FAIL++))
   fi
 done

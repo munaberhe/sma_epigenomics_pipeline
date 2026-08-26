@@ -26,11 +26,11 @@ REPS=(1 2 3)
 
 for COND in "${CONDITIONS[@]}"; do
   echo "Processing $COND..."
-  
+
   # merge all reps and all chromosomes into one bedGraph
   TMPBG=$OUT/${COND}_tmp.bedGraph
   > $TMPBG
-  
+
   for CHR in $(seq 1 22) X Y; do
     CHR="chr${CHR}"
     for REP in "${REPS[@]}"; do
@@ -44,7 +44,7 @@ for COND in "${CONDITIONS[@]}"; do
       fi
     done
   done
-  
+
   # sort and convert to bigWig
   sort -k1,1 -k2,2n $TMPBG > $OUT/${COND}_sorted.bedGraph
   bedGraphToBigWig $OUT/${COND}_sorted.bedGraph $CHROM_SIZES $OUT/${COND}_methylation.bw

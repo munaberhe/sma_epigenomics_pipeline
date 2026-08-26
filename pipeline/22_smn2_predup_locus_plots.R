@@ -63,7 +63,6 @@ EXONS <- list(
   )
 )
 
-
 message("Loading pre-dedup SMN2 data...")
 load_smn2 <- function(condition) {
   message("  ", condition)
@@ -96,7 +95,6 @@ for (cond in CONDITIONS) {
           " | >=5x: ", sum(m$readsN>=5), " | median: ", round(median(m$readsN),1))
 }
 
-
 SENSITIVE_DMRS <- list()
 sens_csv <- "results/smn2_local_dmr/SMN2_sensitive_DMRs_all_contrasts.csv"
 if (file.exists(sens_csv)) {
@@ -112,7 +110,6 @@ if (file.exists(sens_csv)) {
 
 # Also load pre-dedup canonical DMRs
 predup_dmrs <- readRDS("results/smn2_predup_comparison/dmr_canonical_predup_SMN2.rds")
-
 
 build_smn_gff <- function() {
   rows <- list()
@@ -133,7 +130,6 @@ build_smn_gff <- function() {
           strand=df$strand, type=df$type, name=df$name)
 }
 SMN_GFF <- build_smn_gff()
-
 
 plot_smn2 <- function(meth_a, meth_b, ct, dmrs=NULL,
                       annotation=NULL, title=NULL) {
@@ -184,7 +180,6 @@ plot_smn2 <- function(meth_a, meth_b, ct, dmrs=NULL,
     mtext(annotation, side=3, line=0.2, cex=0.7, col="grey40", adj=1)
 }
 
-
 message("\n=== SMN2 locus plots (pre-dedup) ===")
 for (ct in CONTRASTS) {
   fname <- paste0("SMN_locus_predup_", ct$name, ".pdf")
@@ -202,7 +197,6 @@ for (ct in CONTRASTS) {
   )
   dev.off()
 }
-
 
 message("\n=== SMN2 sensitive plots (pre-dedup) ===")
 for (ct in CONTRASTS) {

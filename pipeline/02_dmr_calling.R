@@ -62,11 +62,7 @@ meth_a <- load_chr(cond_a)
 meth_b <- load_chr(cond_b)
 message("Pooled CpGs: ", format(length(meth_a), big.mark=","))
 
-
 # Build tested windows for annotation enrichment background.
-
-
-
 
 message("Building tested-window background...")
 chr_len <- max(end(meth_a), end(meth_b))
@@ -89,7 +85,6 @@ tested <- bins[cyto_per_bin_a >= 4 & cyto_per_bin_b >= 4 &
 message("Tested windows on ", CHR, ": ", length(tested))
 saveRDS(tested, tw_path)
 message("Saved tested windows: ", tw_path)
-
 
 # DMR calling parameters
 

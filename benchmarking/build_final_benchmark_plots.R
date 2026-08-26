@@ -12,9 +12,7 @@ NAVY <- "#1B4F8A"
 RED  <- "#B2182B"
 GREY <- "#6B7280"
 
-# ---------------------------------------------------------------------------
 # PLOT 1: corrected label-swap (real replicate-partition permutation)
-# ---------------------------------------------------------------------------
 ls_df <- read.csv("results/dmr_benchmark_labelswap_real/labelswap_real_summary.csv")
 ls_df <- ls_df[ls_df$method == "bins", ]   # noise_filter excluded -- confirmed degenerate
 ls_df <- ls_df[!is.na(ls_df$n_real), ]
@@ -51,9 +49,7 @@ ggsave(file.path(OUT_DIR, "labelswap_real_corrected.pdf"), p_ls,
        width = 9, height = 6.5, device = cairo_pdf)
 message("Saved: labelswap_real_corrected.pdf")
 
-# ---------------------------------------------------------------------------
 # PLOT 2: corrected read-count permutation, threshold sweep
-# ---------------------------------------------------------------------------
 rc_df <- read.csv("results/dmr_benchmark_readcount_real/readcount_real_summary.csv")
 rc_df <- rc_df[!is.na(rc_df$n_real) & !is.na(rc_df$n_scr_mean), ]
 rc_df$window_size <- as.numeric(rc_df$window_size)

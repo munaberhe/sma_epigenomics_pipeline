@@ -42,18 +42,18 @@ message("Computing profiles...")
 profiles <- lapply(names(COND_COLS), function(cond) {
   m <- meth[[cond]]
   m <- m[as.character(seqnames(m)) == CHR & m$context == "CG" & m$readsN >= MIN_READS]
-  
+
   # bin by 1Mb windows
   pos  <- start(m)
   bin  <- floor(pos / WIN_SIZE) * WIN_SIZE + WIN_SIZE/2  # bin midpoint
-  
+
   df <- data.frame(
     pos   = pos,
     bin   = bin,
     readsM = m$readsM,
     readsN = m$readsN
   )
-  
+
   # coverage-weighted mean per bin
   agg <- df %>%
     group_by(bin) %>%

@@ -74,7 +74,7 @@ vpa_context  <- load_annotated("ASO_VPA_vs_ASO_CTRL")
 aso_alone    <- load_annotated("ASO_CTRL_vs_Scramble_CTRL")
 vpa_alone    <- load_annotated("Scramble_VPA_vs_Scramble_CTRL")
 
-# genes called in ASO alone / VPA alone — used for exclusion
+# genes called in ASO alone / VPA alone - used for exclusion
 aso_alone_genes <- if (!is.null(aso_alone)) unique(aso_alone$SYMBOL) else character(0)
 vpa_alone_genes <- if (!is.null(vpa_alone)) unique(vpa_alone$SYMBOL) else character(0)
 
@@ -102,7 +102,7 @@ score_gene <- function(df_row) {
   if (!is.na(pv) && pv < 0.001) score <- score + 2
   md <- abs(as.numeric(df_row$meth_diff))
   if (!is.na(md) && md > 0.30) score <- score + 2
-  # CpG island overlap placeholder — add +1 if annotation mentions CpG
+  # CpG island overlap placeholder - add +1 if annotation mentions CpG
   if (!is.null(ann) && !is.na(ann) && grepl("CpG", ann)) score <- score + 1
   score
 }
@@ -140,7 +140,7 @@ if (!is.null(vpa_scored)) {
   message("  VPA context-dependent: ", nrow(vpa_scored), " genes")
 }
 
-# pairwise synergy candidates — genes in both lists
+# pairwise synergy candidates - genes in both lists
 message("Identifying pairwise synergy candidates...")
 if (!is.null(aso_scored) && !is.null(vpa_scored)) {
   both_genes <- intersect(aso_scored$SYMBOL, vpa_scored$SYMBOL)
@@ -195,7 +195,7 @@ if (!is.null(aso_scored) && !is.null(vpa_scored)) {
             row.names=FALSE)
   message("  Written all_pairwise_candidates.csv: ", nrow(all_genes), " genes")
 
-  # Appendix Table F.1 — clean formatted version for thesis
+  # Appendix Table F.1 - clean formatted version for thesis
   appendix <- prov[prov$selected == "YES", ]
   appendix_ctx <- rbind(
     aso_scored[!aso_scored$SYMBOL %in% both_genes &

@@ -2,7 +2,7 @@
 
 Whole-genome bisulfite sequencing (WGBS) analysis of nusinersen (ASO) and valproic acid (VPA) combination treatment in Spinal Muscular Atrophy cell lines.
 
-**MSc Bioinformatics thesis · Queen Mary University of London · 2026**
+**MSc Bioinformatics thesis | Queen Mary University of London | 2026**
 **Supervisor:** Prof Radu Zabet (Zabet Lab, QMUL)
 **Collaborators:** Prof Alberto Kornblihtt (IFIBYNE-UBA-CONICET), Dr Emilia Haberfeld, Dr Marcos Miretti
 
@@ -50,7 +50,7 @@ sma_epigenomics_pipeline/
 
 ## Pipeline Scripts
 
-### Alignment — Canonical Unmasked (pipeline/canonical/)
+### Alignment - Canonical Unmasked (pipeline/canonical/)
 
 | Script | Description |
 |--------|-------------|
@@ -59,7 +59,7 @@ sma_epigenomics_pipeline/
 | `02_align_array.sh` | Bismark paired-end alignment array job (12 samples, 3 at a time) |
 | `03_dedup_extract_array.sh` | Deduplicate BAMs, extract methylation, split CX report by chromosome |
 
-### Alignment — SMN1-Masked (pipeline/smn1_masked/)
+### Alignment - SMN1-Masked (pipeline/smn1_masked/)
 
 | Script | Description |
 |--------|-------------|
@@ -131,7 +131,6 @@ sma_epigenomics_pipeline/
 | `17_pairwise_context_scan.R` | ASO/VPA context-dependent DMR scan and synergy scoring |
 | `18_relevance_scoring.R` | Candidate gene relevance scoring and bubble chart |
 | `20_master_locus_plots.R` | All candidate gene locus plots across the four pairwise contrasts |
-| `genuine_synergy_scan.R` | Additive-null permutation screen (legacy methodology, documented for provenance) |
 | `smn2/07_smn2_sensitive.R` | Sensitive SMN2 DMR scan (minDiff=5%, minCyto=3) |
 | `16_smn2_extended_igv.R` | SMN2 extended locus: methylation, DMRs, H3K27ac and regulatory elements |
 
@@ -167,7 +166,7 @@ The optimal binSize maximises the signal-to-noise ratio z = (D_obs - mu_null) / 
 
 ### minGap Sensitivity
 
-DMR counts vary with the minGap threshold as expected, but the rank order and direction of the four pairwise contrasts are stable across the tested range (100 to 1000 bp). Reported alongside the locked parameter choice as a robustness check rather than a re-optimisation.
+DMR counts vary with the minGap threshold but the rank order and direction of the four pairwise contrasts are stable across the tested range (100 to 1000 bp). Reported alongside the selected parameter choice as a robustness check rather than a re-optimisation.
 
 ---
 
@@ -189,13 +188,7 @@ A genome-wide scan for DMR density hotspots, weighted by covered-CpG background 
 
 ## SMN2 Locus
 
-WGBS coverage at the SMN2 locus (chr5:70,049,638-70,078,522) is low relative to genome-wide mean depth, reflecting multi-mapping between the SMN1/SMN2 paralogs. A flanking region approximately 9.7 kb downstream of the annotated SMN2 3' end (chr5:70,088,223-70,088,522) shows a substantial pooled methylation loss under the combined ASO+VPA condition relative to each single-treatment arm (raw counts and interaction estimate reported in the thesis text); permutation testing at this locus has limited resolution given the small number of covered cytosines and replicates, and the finding is reported descriptively alongside its confidence limits rather than as a validated significant interaction. No DMR is called within the SMN2 gene body itself under the locked genome-wide parameters in any contrast.
-
----
-
-## Non-Additive Survivor Loci
-
-Seven loci originally flagged under an additive-null permutation screen (predicted combination effect = single-treatment effects summed; deviation from that prediction tested against a permutation null) were re-examined for consistency with the pairwise contrast framework. Three of the seven (RELL2, DDIT4L, TCEAL4) show a called DMR in the pairwise contrast matching their originally claimed context-dependent category and no called DMR in the corresponding single-treatment comparator. The remaining four either show no called DMR at this locus under the locked parameters, or are called in both the defining contrast and its comparator and therefore do not meet the context-dependent criterion as originally stated.
+WGBS coverage at the SMN2 locus (chr5:70,049,638-70,078,522) is low relative to genome-wide mean depth, reflecting multi-mapping between the SMN1/SMN2 paralogs. A flanking region approximately 9.7 kb downstream of the annotated SMN2 3' end (chr5:70,088,223-70,088,522) shows a substantial pooled methylation loss under the combined ASO+VPA condition relative to each single-treatment arm (raw counts and interaction estimate reported in the thesis text); permutation testing at this locus has limited resolution given the small number of covered cytosines and replicates, and the finding is reported descriptively alongside its confidence limits rather than as a validated significant interaction. No DMR is called within the SMN2 gene body itself under the selected genome-wide parameters in any contrast.
 
 ---
 

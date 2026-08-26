@@ -3,7 +3,6 @@ suppressPackageStartupMessages({
   library(dplyr)
 })
 
-# ---------------------------------------------------------------------------
 # Aggregate per-task RDS files from the fine-grained read-count permutation
 # array into a compact summary, matching the structure of
 # labelswap_real_summary.csv / aggregate_labelswap_real.R.
@@ -12,7 +11,6 @@ suppressPackageStartupMessages({
 # size_*, t_wall_secs, error.
 # perm_id == 0 is the real (unpermuted) call; perm_id 1-20 are the 20
 # read-count-permuted nulls.
-# ---------------------------------------------------------------------------
 
 PERM_DIR <- "results/dmr_benchmark_readcount_real/perm_rds"
 OUT_DIR  <- "results/dmr_benchmark_readcount_real"
@@ -26,7 +24,7 @@ raw <- do.call(rbind, lapply(files, readRDS))
 write.csv(raw, file.path(OUT_DIR, "readcount_real_per_perm.csv"), row.names = FALSE)
 message("Wrote: ", file.path(OUT_DIR, "readcount_real_per_perm.csv"), " (", nrow(raw), " rows)")
 
-# ---- check completeness ----
+# check completeness
 window_sizes <- c(100, 200, 300, 500, 1000, 2000)
 thresholds   <- c(0.1, 0.2, 0.3, 0.4)
 perm_ids     <- 0:20
@@ -42,7 +40,7 @@ if (nrow(missing) > 0) {
   message("All ", nrow(expected), " expected tasks present.")
 }
 
-# ---- compact summary ----
+# compact summary
 real_rows <- raw %>% filter(is_real)
 scr_rows  <- raw %>% filter(!is_real)
 
@@ -80,8 +78,8 @@ cat("\n=== Summary ===\n")
 print(as.data.frame(compact[, c("window_size","minDiff","n_real","n_scr_mean","n_scr_sd","ratio","delta")]),
       row.names = FALSE)
 
-# ---- legacy-format CSVs (one per window/threshold cell), matching the
-# schema plot_radu_panels.R / your existing benchmark CSVs use ----
+# legacy-format CSVs (one per window/threshold cell), matching the
+# schema plot_radu_panels.R / the benchmark CSVs use
 OUT_LEGACY <- "results/dmr_benchmark_threshold_sweep"
 dir.create(OUT_LEGACY, recursive = TRUE, showWarnings = FALSE)
 

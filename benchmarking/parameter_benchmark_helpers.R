@@ -1,5 +1,5 @@
-# parameter_benchmark_helpers.R — shared utilities for benchmark scripts.
-# SMA Epigenomics Pipeline — Muna Berhe, QMUL
+# parameter_benchmark_helpers.R - shared utilities for benchmark scripts.
+# SMA Epigenomics Pipeline - Muna Berhe, QMUL
 
 library(DMRcaller)
 library(BiocParallel)
@@ -26,7 +26,7 @@ load_chr1_data <- function() {
     message("  ASO_CTRL CpGs: ", length(dat$aso_ctrl))
     return(dat)
   }
-  message("No cache at ", RDS_PATH, " — falling back to readBismarkPool().")
+  message("No cache at ", RDS_PATH, " - falling back to readBismarkPool().")
   load_one <- function(samples) {
     paths <- file.path(COV_DIR, paste0(samples, "_", CHROM, ".CpG_report.txt.gz"))
     paths <- paths[file.exists(paths)]

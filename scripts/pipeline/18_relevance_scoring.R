@@ -11,11 +11,8 @@ setwd("/gpfs/scratch/bt25018/sma_epigenomics_pipeline")
 
 OUT <- "results/pairwise_context_scan"
 
-
 aso_df <- read.csv(file.path(OUT, "ASO_context_dependent_top200.csv"))
 vpa_df <- read.csv(file.path(OUT, "VPA_context_dependent_top200.csv"))
-
-
 
 # 1. Known SMA modifiers and motor neuron genes
 sma_relevant <- c(
@@ -51,7 +48,7 @@ sma_relevant <- c(
   "IRF8","PAX5","SOX11","ETV1","ETV4","ETV5","PEA3"
 )
 
-# 2. GO term based scoring — neural/motor neuron terms
+# 2. GO term based scoring - neural/motor neuron terms
 neural_go_terms <- c(
   "neuromuscular junction", "motor neuron", "axon guidance",
   "neuron differentiation", "synaptic transmission", "axonogenesis",
@@ -59,7 +56,6 @@ neural_go_terms <- c(
   "RNA splicing", "chromatin remodeling", "histone modification",
   "ubiquitin", "proteasome"
 )
-
 
 score_genes <- function(df, label) {
   df <- df[!is.na(df$SYMBOL) & df$SYMBOL != "", ]
@@ -92,12 +88,10 @@ aso_scored <- score_genes(aso_df, "ASO_context_dependent")
 message("Scoring VPA context-dependent genes...")
 vpa_scored <- score_genes(vpa_df, "VPA_context_dependent")
 
-
 write.csv(aso_scored, file.path(OUT, "ASO_context_dependent_scored.csv"),
           row.names=FALSE)
 write.csv(vpa_scored, file.path(OUT, "VPA_context_dependent_scored.csv"),
           row.names=FALSE)
-
 
 cat("\n=== TOP ASO CONTEXT-DEPENDENT GENES (by relevance score) ===\n")
 top_aso <- aso_scored[aso_scored$score >= 2,
@@ -108,7 +102,6 @@ cat("\n=== TOP VPA CONTEXT-DEPENDENT GENES (by relevance score) ===\n")
 top_vpa <- vpa_scored[vpa_scored$score >= 2,
   c("SYMBOL","seqnames","meth_diff","annotation","score","sma_relevant")]
 print(head(top_vpa, 30))
-
 
 run_go <- function(df, label) {
   genes <- unique(df$SYMBOL[df$score >= 2])
@@ -130,7 +123,6 @@ run_go <- function(df, label) {
 message("\nRunning GO enrichment on high-scoring genes...")
 go_aso <- run_go(aso_scored, "ASO_context")
 go_vpa <- run_go(vpa_scored, "VPA_context")
-
 
 make_bubble <- function(df, title, col) {
   top <- head(df[df$score >= 2, ], 25)
@@ -159,7 +151,7 @@ p2 <- make_bubble(vpa_scored, "VPA context-dependent top hits", "#C0392B")
 if (!is.null(p1) && !is.null(p2)) {
   combined <- (p1 | p2) +
     plot_annotation(
-      title="Context-dependent DMR candidates — relevance scored",
+      title="Context-dependent DMR candidates - relevance scored",
       caption="Red = known SMA/motor neuron/chromatin relevant gene. Size = relevance score.",
       theme=theme(plot.title=element_text(face="bold", size=13))
     )
@@ -169,7 +161,6 @@ if (!is.null(p1) && !is.null(p2)) {
          combined, width=16, height=10, dpi=150)
   message("Saved bubble chart")
 }
-
 
 if (!is.null(go_aso)) {
   pdf(file.path(OUT, "GO_ASO_context_highscore.pdf"), width=10, height=8)
